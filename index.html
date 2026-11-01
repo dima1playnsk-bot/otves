@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>«Отвес» — строительство домов под ключ в Новосибирске</title>
   <meta name="description" content="Строим тёплые дома из газобетона, кирпича и бруса в Новосибирске и области. Смета фиксируется в договоре, оплата по этапам, гарантия 10 лет.">
   <meta name="theme-color" content="#1D4596">
@@ -10,11 +10,28 @@
   <meta name="robots" content="noindex, follow">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
 
+  <!-- Превью ссылки в мессенджерах и соцсетях -->
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:site_name" content="Отвес">
+  <meta property="og:url" content="https://dima1playnsk-bot.github.io/otves/">
+  <meta property="og:title" content="«Отвес» — дома, в которых тепло в минус сорок">
+  <meta property="og:description" content="Строим дома под ключ в Новосибирске. Смета фиксируется в договоре, оплата по этапам, гарантия 10 лет.">
+  <meta property="og:image" content="https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=1200&h=630&q=80">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Главное фото грузим заранее, чтобы первый экран появился быстрее -->
+  <link rel="preload" as="image" fetchpriority="high"
+        imagesrcset="https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=900&q=75 900w, https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=1500&q=80 1500w, https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=2400&q=80 2400w"
+        imagesizes="100vw">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Alumni+Sans:ital,wght@0,400..900;1,400..900&family=Onest:wght@400..700&display=swap" rel="stylesheet">
   <link rel="preconnect" href="https://images.unsplash.com">
-  <link rel="stylesheet" href="styles.css?v=4">
+  <link rel="stylesheet" href="styles.css?v=5">
 
   <script>
     // Если в системе выключены анимации — сайт по умолчанию спокойный,
@@ -89,13 +106,14 @@
         <path d="M6 14H18L12 32Z" fill="#FFB800"/>
       </g>
     </svg>
-    <span class="logo__word">Отвес</span>
+    <span class="logo__word" translate="no">Отвес</span>
   </a>
   <nav class="nav" aria-label="Разделы сайта">
     <a href="#build">Как строим</a>
     <a href="#projects">Проекты</a>
     <a href="#calc">Цены</a>
     <a href="#why">Гарантии</a>
+    <a href="#faq">Вопросы</a>
     <a href="#contact">Контакты</a>
   </nav>
   <a class="header__phone" href="tel:+73830000000">+7 383 000-00-00</a>
@@ -111,9 +129,11 @@
     <a href="#projects">Проекты</a>
     <a href="#calc">Цены</a>
     <a href="#why">Гарантии</a>
+    <a href="#faq">Вопросы</a>
     <a href="#contact">Контакты</a>
   </nav>
   <a class="mnav__phone" href="tel:+73830000000">+7 383 000-00-00</a>
+  <a class="btn btn--primary btn--arrow mnav__cta" href="#contact"><span>Получить смету</span></a>
 </div>
 
 <main id="main">
@@ -121,7 +141,7 @@
   <!-- ============ ПЕРВЫЙ ЭКРАН ============ -->
   <section class="hero" id="top">
     <div class="hero__photo" aria-hidden="true">
-      <img src="https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=1800&q=80"
+      <img width="1800" height="1200" src="https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=1800&q=80"
            srcset="https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=900&q=75 900w,
                    https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=1500&q=80 1500w,
                    https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=2400&q=80 2400w"
@@ -137,9 +157,14 @@
         </h1>
         <p class="hero__lead">Строим под ключ из&nbsp;газобетона, кирпича и&nbsp;бруса в&nbsp;Новосибирске и&nbsp;области. Смета фиксируется в&nbsp;договоре и&nbsp;не&nbsp;меняется до&nbsp;сдачи ключей.</p>
         <div class="hero__actions">
-          <a class="btn btn--primary magnet" href="#calc"><span>Рассчитать стоимость</span></a>
+          <a class="btn btn--primary btn--arrow magnet" href="#calc"><span>Рассчитать стоимость</span></a>
           <a class="btn btn--ghost" href="#projects"><span>Смотреть проекты</span></a>
         </div>
+        <ul class="hero__trust">
+          <li>Оплата по&nbsp;этапам</li>
+          <li>Гарантия 10&nbsp;лет</li>
+          <li>Выезд инженера бесплатно</li>
+        </ul>
       </div>
 
     </div>
@@ -150,13 +175,6 @@
       <span class="temp temp--in"><b data-count="22">+22</b>°&nbsp;в&nbsp;доме</span>
     </div>
 
-    <table class="stamp" aria-label="Коротко о компании">
-      <tr><th scope="row">Отвес</th><td>Жилой дом, 146 м²</td></tr>
-      <tr><th scope="row">Сдано домов</th><td>312</td></tr>
-      <tr><th scope="row">Строим с</th><td>2012 года</td></tr>
-      <tr><th scope="row">Гарантия</th><td>10 лет</td></tr>
-      <tr><th scope="row">Лист 1</th><td>Листов 6</td></tr>
-    </table>
 
     <a class="hero__hint" href="#build">
       <span class="hero__plumb" aria-hidden="true"><i></i></span>
@@ -187,16 +205,19 @@
         <div class="build__grid" aria-hidden="true"></div>
 
         <div class="stages">
-          <figure class="stage"><img src="https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Инженер чертит план дома на бумаге" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
-          <figure class="stage"><img src="https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Рабочий вяжет арматуру для фундаментной плиты" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
-          <figure class="stage"><img src="https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Каменщик кладёт стену из блоков на раствор" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
-          <figure class="stage"><img src="https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Деревянные стропила на крыше строящегося дома" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
-          <figure class="stage"><img src="https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Дом в строительных лесах во время отделки фасада" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
-          <figure class="stage"><img src="https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Готовый дом вечером: свет в окнах, газон и дорожка" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
+          <figure class="stage"><img width="1400" height="933" src="https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Инженер чертит план дома на бумаге" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
+          <figure class="stage"><img width="1400" height="933" src="https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Рабочий вяжет арматуру для фундаментной плиты" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
+          <figure class="stage"><img width="1400" height="933" src="https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Каменщик кладёт стену из блоков на раствор" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
+          <figure class="stage"><img width="1400" height="933" src="https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Деревянные стропила на крыше строящегося дома" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
+          <figure class="stage"><img width="1400" height="933" src="https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Дом в строительных лесах во время отделки фасада" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
+          <figure class="stage"><img width="1400" height="933" src="https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Готовый дом вечером: свет в окнах, газон и дорожка" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
         </div>
         <p class="build__cap" aria-hidden="true"><span class="build__capn">06</span><span class="build__capt">Двор и&nbsp;ключи</span></p>
 
         <p class="build__week" aria-hidden="true">Неделя <b class="build__weeknum">20</b> из 20</p>
+        <a class="build__skip" href="#projects">Пропустить этапы
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2V13M3 8.5L8 13.5L13 8.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
         <p class="build__done">
           <svg viewBox="0 0 48 24" aria-hidden="true"><circle cx="10" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="3"/><path d="M17 12H44M36 12V19M42 12V17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
           Ключи ваши
@@ -239,7 +260,7 @@
   <!-- ============ ПРОЕКТЫ ============ -->
   <section class="projects" id="projects" data-pin>
     <div class="container projects__head">
-      <h2 class="h2">Готовые проекты</h2>
+      <div><p class="eyebrow" aria-hidden="true">Лист 02 · Проекты</p><h2 class="h2">Готовые проекты</h2></div>
       <p>Любой проект меняем под&nbsp;участок и&nbsp;семью: переносим стены, добавляем гараж или террасу. Цены указаны за&nbsp;дом под&nbsp;чистовую отделку.</p>
     </div>
 
@@ -248,7 +269,7 @@
 
         <article class="proj">
           <div class="proj__art">
-            <img class="proj__img" src="https://images.unsplash.com/photo-1704307163247-cde12ba3ff28?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1704307163247-cde12ba3ff28?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1704307163247-cde12ba3ff28?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Одноэтажный дом-барн, обшитый деревом, с большими окнами" loading="lazy" decoding="async">
+            <img class="proj__img" width="800" height="533" src="https://images.unsplash.com/photo-1704307163247-cde12ba3ff28?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1704307163247-cde12ba3ff28?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1704307163247-cde12ba3ff28?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Одноэтажный дом-барн, обшитый деревом, с большими окнами" loading="lazy" decoding="async">
           </div>
           <div class="proj__body">
             <h3 class="proj__name">Барн 98</h3>
@@ -265,7 +286,7 @@
 
         <article class="proj">
           <div class="proj__art">
-            <img class="proj__img" src="https://images.unsplash.com/photo-1668015642046-22044ddc7247?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1668015642046-22044ddc7247?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1668015642046-22044ddc7247?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Тёмный дом-шале с треугольной крышей среди деревьев" loading="lazy" decoding="async">
+            <img class="proj__img" width="800" height="533" src="https://images.unsplash.com/photo-1668015642046-22044ddc7247?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1668015642046-22044ddc7247?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1668015642046-22044ddc7247?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Тёмный дом-шале с треугольной крышей среди деревьев" loading="lazy" decoding="async">
           </div>
           <div class="proj__body">
             <h3 class="proj__name">Шале 146</h3>
@@ -282,7 +303,7 @@
 
         <article class="proj">
           <div class="proj__art">
-            <img class="proj__img" src="https://images.unsplash.com/photo-1756706718604-ef4af3970e33?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1756706718604-ef4af3970e33?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1756706718604-ef4af3970e33?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Двухэтажный дом-куб с плоской крышей и деревянной отделкой" loading="lazy" decoding="async">
+            <img class="proj__img" width="800" height="533" src="https://images.unsplash.com/photo-1756706718604-ef4af3970e33?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1756706718604-ef4af3970e33?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1756706718604-ef4af3970e33?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Двухэтажный дом-куб с плоской крышей и деревянной отделкой" loading="lazy" decoding="async">
           </div>
           <div class="proj__body">
             <h3 class="proj__name">Куб 132</h3>
@@ -299,7 +320,7 @@
 
         <article class="proj">
           <div class="proj__art">
-            <img class="proj__img" src="https://images.unsplash.com/photo-1777106322601-578dc9213ace?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1777106322601-578dc9213ace?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1777106322601-578dc9213ace?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Двухэтажный семейный дом со светлым фасадом и газоном" loading="lazy" decoding="async">
+            <img class="proj__img" width="800" height="533" src="https://images.unsplash.com/photo-1777106322601-578dc9213ace?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1777106322601-578dc9213ace?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1777106322601-578dc9213ace?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Двухэтажный семейный дом со светлым фасадом и газоном" loading="lazy" decoding="async">
           </div>
           <div class="proj__body">
             <h3 class="proj__name">Семейный 184</h3>
@@ -316,7 +337,7 @@
 
         <article class="proj">
           <div class="proj__art">
-            <img class="proj__img" src="https://images.unsplash.com/photo-1706164971302-e30c0640cc3b?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1706164971302-e30c0640cc3b?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1706164971302-e30c0640cc3b?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Одноэтажный дом с освещённой верандой вечером" loading="lazy" decoding="async">
+            <img class="proj__img" width="800" height="533" src="https://images.unsplash.com/photo-1706164971302-e30c0640cc3b?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1706164971302-e30c0640cc3b?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1706164971302-e30c0640cc3b?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Одноэтажный дом с освещённой верандой вечером" loading="lazy" decoding="async">
           </div>
           <div class="proj__body">
             <h3 class="proj__name">Веранда 76</h3>
@@ -333,7 +354,7 @@
 
         <article class="proj proj--own">
           <div class="proj__art">
-            <img class="proj__img" src="https://images.unsplash.com/photo-1649688066830-a0cf04d1bc41?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1649688066830-a0cf04d1bc41?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1649688066830-a0cf04d1bc41?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Архитектор рисует эскиз дома на столе" loading="lazy" decoding="async">
+            <img class="proj__img" width="800" height="533" src="https://images.unsplash.com/photo-1649688066830-a0cf04d1bc41?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1649688066830-a0cf04d1bc41?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1649688066830-a0cf04d1bc41?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Архитектор рисует эскиз дома на столе" loading="lazy" decoding="async">
           </div>
           <div class="proj__body">
             <h3 class="proj__name">Ваш проект</h3>
@@ -344,7 +365,12 @@
 
       </div>
     </div>
-    <div class="container projects__foot" aria-hidden="true"><div class="projects__bar"><i></i></div></div>
+    <div class="container projects__foot" aria-hidden="true">
+      <div class="projects__bar"><i></i></div>
+      <span class="projects__swipe">Листайте вбок
+        <svg viewBox="0 0 24 12"><path d="M1 6H22M17 1L22 6L17 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </div>
   </section>
 
   <!-- ============ КАЛЬКУЛЯТОР ============ -->
@@ -358,7 +384,7 @@
     </div>
     <div class="container">
       <div class="calc__head">
-        <h2 class="h2">Сколько стоит ваш дом</h2>
+        <div><p class="eyebrow" aria-hidden="true">Лист 03 · Цены</p><h2 class="h2">Сколько стоит ваш дом</h2></div>
         <p>Предварительный расчёт по&nbsp;ценам 2026 года. Точную смету пришлём на&nbsp;следующий день после выезда на&nbsp;участок.</p>
       </div>
 
@@ -391,6 +417,7 @@
               <label><input type="radio" name="wall" value="frame"><span>Каркас</span></label>
               <label><input type="radio" name="wall" value="timber"><span>Брус</span></label>
             </div>
+            <p class="seg__hint" id="wallHint">Тёплый, быстро кладётся и&nbsp;не&nbsp;даёт усадки. Самый частый выбор наших заказчиков.</p>
           </fieldset>
 
           <fieldset class="seg">
@@ -405,12 +432,14 @@
           </fieldset>
         </form>
 
-        <div class="calc__result" aria-live="polite">
+        <div class="calc__result">
+          <!-- Скринридер узнаёт итог расчёта один раз, а не каждый кадр «бегущей» цены -->
+          <p class="vh" aria-live="polite" id="calcLive"></p>
           <div class="calc__preview">
-            <img class="cv-img is-on" data-mat="gas" src="https://images.unsplash.com/photo-1684691376857-5dfb87f6bc65?auto=format&fit=crop&q=75&w=900" alt="Дом из газобетона под белой штукатуркой" loading="lazy" decoding="async">
-            <img class="cv-img" data-mat="brick" src="https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&q=75&w=900" alt="Дом из красного кирпича" loading="lazy" decoding="async">
-            <img class="cv-img" data-mat="frame" src="https://images.unsplash.com/photo-1762374974129-f9266d9c4efc?auto=format&fit=crop&q=75&w=900" alt="Каркасный дом с отделкой сайдингом" loading="lazy" decoding="async">
-            <img class="cv-img" data-mat="timber" src="https://images.unsplash.com/photo-1706047924901-28129757dde7?auto=format&fit=crop&q=75&w=900" alt="Дом из клеёного бруса" loading="lazy" decoding="async">
+            <img width="900" height="600" class="cv-img is-on" data-mat="gas" src="https://images.unsplash.com/photo-1684691376857-5dfb87f6bc65?auto=format&fit=crop&q=75&w=900" alt="Дом из газобетона под белой штукатуркой" loading="lazy" decoding="async">
+            <img width="900" height="600" class="cv-img" data-mat="brick" src="https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&q=75&w=900" alt="Дом из красного кирпича" loading="lazy" decoding="async">
+            <img width="900" height="600" class="cv-img" data-mat="frame" src="https://images.unsplash.com/photo-1762374974129-f9266d9c4efc?auto=format&fit=crop&q=75&w=900" alt="Каркасный дом с отделкой сайдингом" loading="lazy" decoding="async">
+            <img width="900" height="600" class="cv-img" data-mat="timber" src="https://images.unsplash.com/photo-1706047924901-28129757dde7?auto=format&fit=crop&q=75&w=900" alt="Дом из клеёного бруса" loading="lazy" decoding="async">
             <span class="cv-label" id="cvLabel">газобетон D500</span>
             <span class="cv-tags" aria-hidden="true"><b id="cvArea">140 м²</b><b id="cvFloors">2 этажа</b><b id="cvFinish">под чистовую</b></span>
           </div>
@@ -421,7 +450,12 @@
             <div><dt>Срок стройки</dt><dd id="term">5 месяцев</dd></div>
             <div><dt>За квадратный метр</dt><dd id="sqm">60 720 ₽</dd></div>
           </dl>
-          <a class="btn btn--primary magnet calc__cta" href="#contact" id="calcCta"><span>Получить точную смету</span></a>
+          <a class="btn btn--primary btn--arrow magnet calc__cta" href="#contact" id="calcCta"><span>Получить точную смету</span></a>
+          <button class="calc__share" type="button" id="calcShare">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5L11.5 8.5M7 9.5L5.2 11.3A2.8 2.8 0 0 0 9.2 15.3L11 13.5M13 10.5L14.8 8.7A2.8 2.8 0 0 0 10.8 4.7L9 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <span>Поделиться расчётом</span>
+          </button>
+          <p class="vh" aria-live="polite" id="shareStatus"></p>
         </div>
       </div>
     </div>
@@ -470,17 +504,25 @@
           <p class="num__t">на&nbsp;выезд по&nbsp;гарантийной заявке</p>
         </div>
       </div>
+      <div class="container nums__cta">
+        <p>Следующий дом может быть вашим. Инженер приедет на&nbsp;участок бесплатно.</p>
+        <a class="btn btn--primary btn--arrow" href="#contact"><span>Вызвать инженера</span></a>
+      </div>
     </section>
   </div>
 
   <!-- ============ ГАРАНТИИ ============ -->
   <section class="why" id="why">
+    <div class="why__photo" aria-hidden="true">
+      <img src="https://images.unsplash.com/photo-1676802540678-2dceb1820113?auto=format&fit=crop&q=70&w=1800" width="1800" height="1200" alt="" loading="lazy" decoding="async">
+    </div>
     <div class="floaters" aria-hidden="true">
       <svg class="fl fl--d" viewBox="0 0 48 48" style="right:3%;top:5%;width:90px" data-speed="1.3"><use href="#f-square"/></svg>
       <svg class="fl" viewBox="0 0 48 48" style="right:22%;top:30%;width:60px" data-speed="-0.9"><use href="#f-cross"/></svg>
       <svg class="fl fl--d" viewBox="0 0 48 48" style="left:2%;bottom:6%;width:76px" data-speed="1.1"><use href="#f-bolt"/></svg>
     </div>
     <div class="container">
+      <h2 class="eyebrow eyebrow--light"><span><span aria-hidden="true">Лист 04 · </span>Гарантии</span></h2>
       <p class="why__statement">Мы отвечаем за&nbsp;дом деньгами, а&nbsp;не&nbsp;обещаниями. Всё, что ниже, записано в&nbsp;договоре.</p>
 
       <ul class="why__list">
@@ -508,6 +550,44 @@
     </div>
   </section>
 
+  <!-- ============ ВОПРОСЫ ============ -->
+  <section class="faq" id="faq">
+    <div class="container faq__grid">
+      <div class="faq__head">
+        <p class="eyebrow" aria-hidden="true">Лист 05 · Вопросы</p>
+        <h2 class="h2">Частые вопросы</h2>
+        <p>Собрали то, что спрашивают на&nbsp;первой встрече. Не&nbsp;нашли свой вопрос&nbsp;— позвоните, инженер ответит сразу.</p>
+        <a class="faq__call" href="tel:+73830000000">+7 383 000-00-00</a>
+      </div>
+      <div class="faq__list">
+        <details class="faq__item" name="faq" open>
+          <summary>Можно ли строить зимой?</summary>
+          <div class="faq__a"><p>Да, строим круглый год. Зимой бетон для фундамента прогреваем, кладку ведём на&nbsp;растворе с&nbsp;противоморозными добавками. Сроки из&nbsp;договора от&nbsp;сезона не&nbsp;меняются.</p></div>
+        </details>
+        <details class="faq__item" name="faq">
+          <summary>Может ли цена вырасти во&nbsp;время стройки?</summary>
+          <div class="faq__a"><p>Нет. Цена из&nbsp;сметы записана в&nbsp;договоре и&nbsp;не&nbsp;меняется до&nbsp;сдачи ключей. Смета меняется, только если вы&nbsp;сами решите что-то добавить: например, гараж или тёплый пол.</p></div>
+        </details>
+        <details class="faq__item" name="faq">
+          <summary>Можно ли построить дом в&nbsp;ипотеку?</summary>
+          <div class="faq__a"><p>Да. Договор подходит для ипотеки на&nbsp;строительство и&nbsp;для материнского капитала. Подскажем, какие документы нужны банку, и&nbsp;подготовим смету в&nbsp;нужном виде.</p></div>
+        </details>
+        <details class="faq__item" name="faq">
+          <summary>Сколько стоят выезд и&nbsp;проект?</summary>
+          <div class="faq__a"><p>Выезд инженера по&nbsp;Новосибирску и&nbsp;области бесплатный. Проект тоже бесплатный, если строительство заказываете у&nbsp;нас.</p></div>
+        </details>
+        <details class="faq__item" name="faq">
+          <summary>Как следить за&nbsp;стройкой из&nbsp;другого города?</summary>
+          <div class="faq__a"><p>На&nbsp;участке работает камера, смотреть можно с&nbsp;телефона в&nbsp;любое время. Каждую пятницу присылаем отчёт с&nbsp;фото и&nbsp;видео. Принимать этапы можно по&nbsp;видеосвязи.</p></div>
+        </details>
+        <details class="faq__item" name="faq">
+          <summary>Что, если после сдачи что-то сломается?</summary>
+          <div class="faq__a"><p>На&nbsp;фундамент, стены и&nbsp;кровлю даём гарантию 10&nbsp;лет. По&nbsp;гарантийной заявке приезжаем в&nbsp;течение 48&nbsp;часов и&nbsp;исправляем за&nbsp;свой счёт.</p></div>
+        </details>
+      </div>
+    </div>
+  </section>
+
   <!-- ============ ЗАЯВКА ============ -->
   <section class="contact" id="contact">
     <div class="floaters" aria-hidden="true">
@@ -517,8 +597,14 @@
     </div>
     <div class="container contact__grid">
       <div class="contact__text">
+        <p class="eyebrow" aria-hidden="true">Лист 06 · Заявка</p>
         <h2 class="h2">Приедем на&nbsp;участок и&nbsp;посчитаем дом</h2>
         <p>Выезд инженера по&nbsp;Новосибирску и&nbsp;области бесплатный. На&nbsp;следующий день пришлём смету, которую закрепим в&nbsp;договоре.</p>
+        <ol class="after" aria-label="Что будет после заявки">
+          <li><b>15&nbsp;минут</b><span>Перезвоним и&nbsp;уточним, что хотите построить</span></li>
+          <li><b>1–3&nbsp;дня</b><span>Инженер приедет на&nbsp;участок и&nbsp;проверит грунт</span></li>
+          <li><b>Следующий день</b><span>Пришлём смету с&nbsp;ценой для договора</span></li>
+        </ol>
         <ul class="contact__ways">
           <li><a href="tel:+73830000000">+7 383 000-00-00</a><span>ежедневно с&nbsp;9 до&nbsp;21</span></li>
           <li><b>Новосибирск, ул.&nbsp;Кирпичная,&nbsp;12</b><span>офис и&nbsp;выставка материалов</span></li>
@@ -534,27 +620,28 @@
 
         <div class="card">
           <form class="lead" id="leadForm" novalidate>
-            <h3 class="lead__title">Заявка на&nbsp;расчёт</h3>
+            <h3 class="lead__title">Бесплатный расчёт дома</h3>
             <div class="lead__field">
               <label for="fName">Как к&nbsp;вам обращаться</label>
               <input id="fName" name="name" type="text" autocomplete="name" required>
               <p class="lead__err" id="errName" hidden>Напишите, как к&nbsp;вам обращаться</p>
             </div>
             <div class="lead__field">
-              <label for="fPhone">Телефон</label>
+              <label for="fPhone">Телефон <span>— только для звонка инженера</span></label>
               <input id="fPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__" required>
               <p class="lead__err" id="errPhone" hidden>Проверьте номер: нужно 10&nbsp;цифр после +7</p>
             </div>
             <div class="lead__field">
               <label for="fMsg">Что хотите построить <span>необязательно</span></label>
-              <textarea id="fMsg" name="message" rows="3" placeholder="Например: дом 140 м² из газобетона, участок в Мочище"></textarea>
+              <textarea id="fMsg" name="message" rows="3" placeholder="Например: дом 140 м² из газобетона, участок в Мочище…"></textarea>
             </div>
             <label class="lead__check">
               <input id="fAgree" type="checkbox" name="agree" required>
               <span>Согласен на&nbsp;обработку персональных данных, чтобы со&nbsp;мной связались по&nbsp;заявке</span>
             </label>
             <p class="lead__err" id="errAgree" hidden>Отметьте согласие, чтобы мы могли перезвонить</p>
-            <button class="btn btn--primary lead__submit" type="submit"><span>Отправить заявку</span></button>
+            <button class="btn btn--primary lead__submit" type="submit"><span>Получить расчёт</span></button>
+            <p class="lead__note">Перезвоним за&nbsp;15&nbsp;минут с&nbsp;9 до&nbsp;21. Без рассылок и&nbsp;спама.</p>
           </form>
 
           <div class="lead__done" id="leadDone" hidden tabindex="-1">
@@ -577,7 +664,7 @@
           <path d="M4 1.5H20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
           <g class="logo__bob"><path d="M12 2V14" stroke="currentColor" stroke-width="1.6"/><path d="M6 14H18L12 32Z" fill="#FFB800"/></g>
         </svg>
-        <span class="logo__word">Отвес</span>
+        <span class="logo__word" translate="no">Отвес</span>
       </a>
       <p>Строим частные дома в&nbsp;Новосибирске и&nbsp;области с&nbsp;2012 года.</p>
     </div>
@@ -586,6 +673,7 @@
       <a href="#projects">Проекты</a>
       <a href="#calc">Цены</a>
       <a href="#why">Гарантии</a>
+      <a href="#faq">Вопросы</a>
     </nav>
     <div class="footer__contacts">
       <a href="tel:+73830000000">+7 383 000-00-00</a>
@@ -593,9 +681,12 @@
       <span>Ежедневно с&nbsp;9 до&nbsp;21</span>
     </div>
   </div>
-  <div class="footer__word" aria-hidden="true"><span>О</span><span>т</span><span>в</span><span>е</span><span>с</span></div>
+  <div class="footer__word" aria-hidden="true" translate="no"><span>О</span><span>т</span><span>в</span><span>е</span><span>с</span></div>
   <div class="container footer__bottom">
     <span>© 2026 «Отвес»</span>
+    <a class="footer__top" href="#top">Наверх
+      <svg viewBox="0 0 12 14" aria-hidden="true"><path d="M6 13V2M1.5 6.5L6 2L10.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
     <button class="footer__motion" type="button" data-motion-toggle hidden></button>
     <span>Демо-сайт: компания вымышленная, цены примерные. Фото: <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a>.</span>
   </div>
@@ -603,9 +694,21 @@
 
 <button class="motion-toggle" type="button" data-motion-toggle hidden></button>
 
+<!-- Нижняя панель на телефоне: позвонить или оставить заявку в одно касание -->
+<div class="mbar" aria-label="Быстрая связь" role="region">
+  <a class="mbar__call" href="tel:+73830000000">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3H9L11 8L8.5 9.5C9.6 11.8 12.2 14.4 14.5 15.5L16 13L21 15V19C21 20.1 20.1 21 19 21C10.2 20.4 3.6 13.8 3 5C3 3.9 3.9 3 5 3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+    Позвонить
+  </a>
+  <a class="mbar__cta" href="#contact">
+    <span class="mbar__lbl">Получить смету</span>
+    <span class="mbar__price" aria-hidden="true"><small>Ваш дом</small><b id="mbarPrice">≈ 8,5 млн ₽</b></span>
+  </a>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
-<script src="script.js?v=4"></script>
+<script src="script.js?v=5"></script>
 </body>
 </html>

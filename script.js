@@ -63,9 +63,27 @@
   const tapeFill = $('.tape__fill');
   const burger = $('.burger');
   const mnav = $('#mnav');
+  const mbar = $('.mbar');
+  const contactSec = $('#contact');
+  const calcSec = $('#calc');
   let menuOpen = false;
   let lastY = window.scrollY;
   let ticking = false;
+
+  // Пункт меню текущего раздела подсвечивается
+  const spy = $$('.nav a').map((a) => ({ a, el: document.getElementById(a.hash.slice(1)) })).filter((s) => s.el);
+  let spyActive = null;
+  const boxOf = (el) => (el.parentElement && el.parentElement.classList.contains('pin-spacer') ? el.parentElement : el);
+  const updateSpy = () => {
+    const mid = window.innerHeight * 0.4;
+    let cur = null;
+    spy.forEach((s) => { if (boxOf(s.el).getBoundingClientRect().top <= mid) cur = s; });
+    if (cur && boxOf(cur.el).getBoundingClientRect().bottom < mid) cur = null;
+    if (cur === spyActive) return;
+    if (spyActive) { spyActive.a.classList.remove('is-active'); spyActive.a.removeAttribute('aria-current'); }
+    if (cur) { cur.a.classList.add('is-active'); cur.a.setAttribute('aria-current', 'true'); }
+    spyActive = cur;
+  };
 
   const onScroll = () => {
     if (ticking) return;
@@ -76,6 +94,13 @@
       const max = document.documentElement.scrollHeight - window.innerHeight;
       tapeFill.style.width = (max > 0 ? Math.min(1, y / max) * 100 : 0) + '%';
       header.classList.toggle('is-solid', y > 30);
+      updateSpy();
+      // Панель на телефоне: после первого экрана и до формы заявки,
+      // а внутри калькулятора показывает текущую цену
+      const vh = window.innerHeight;
+      mbar.classList.toggle('is-on', y > vh * 0.7 && contactSec.getBoundingClientRect().top > vh * 0.85);
+      const cr = calcSec.getBoundingClientRect();
+      mbar.classList.toggle('is-calc', cr.top < vh * 0.6 && cr.bottom > vh * 0.4);
       if (!menuOpen) {
         const d = y - lastY;
         if (d > 2 && y > 240) header.classList.add('is-hidden');
@@ -131,10 +156,9 @@
         duration: 1, ease: 'back.out(2.4)', stagger: 0.09,
       }, 0.9)
       .from(['.hero__lead', '.hero__actions'], { y: 26, opacity: 0, duration: 0.9, stagger: 0.12 }, 1.4)
+      .from('.hero__trust li', { y: 14, opacity: 0, duration: 0.6, stagger: 0.1 }, 1.7)
       .from('.temp', { opacity: 0, y: 24, scale: 0.7, duration: 0.8, stagger: 0.2, ease: 'back.out(2)' }, 1.8)
       .add(countTemps, 1.8)
-      .from('.stamp tr', { opacity: 0, x: 24, duration: 0.5, stagger: 0.07 }, 1.9)
-      .from('.stamp', { opacity: 0, duration: 0.3 }, 1.9)
       .from('.hero__hint', { opacity: 0, y: 10, duration: 0.6 }, 2.3)
       .from('.header > *', { y: -40, opacity: 0, duration: 0.8, stagger: 0.06 }, 0.6)
       .add(() => {
@@ -167,7 +191,8 @@
       if (lenis) lenis.start();
       try { sessionStorage.setItem('otves-seen', '1'); } catch (e) { /* нет хранилища — покажем заставку снова */ }
     };
-    G.timeline({ onComplete: end })
+    // timeScale 1.4 — заставка идёт ~2 с, чтобы не заставлять ждать
+    G.timeline({ onComplete: end }).timeScale(1.4)
       .fromTo('.loader__line', { scaleY: 0 }, { scaleY: 1, duration: 0.85, ease: 'power3.in' }, 0)
       .fromTo('.loader__bob', { y: -drop }, { y: 0, duration: 0.85, ease: 'power3.in' }, 0)
       .to(plumb, {
@@ -321,6 +346,8 @@
     }
 
     ft('.build__done', { opacity: 0, scale: 0.6, y: 20 }, { opacity: 1, scale: 1, y: 0, duration: 0.2, ease: 'back.out(2)' }, 5.7);
+    // На последнем этапе пропускать уже нечего — кнопка уходит
+    ft('.build__skip', { autoAlpha: 1 }, { autoAlpha: 0, duration: 0.15 }, 5.5);
     tl.to({}, { duration: 0.05 }, 5.95);
 
     // Связь с колонкой этапов, подписью и счётчиком недель
@@ -428,12 +455,22 @@
           c.classList.toggle('is-built', seen);
         });
       };
-      ST.create({
+      const pinSt = ST.create({
         trigger: sec, start: 'top top', end: () => '+=' + dist(),
         pin: true, scrub: 0.7, animation: tween, invalidateOnRefresh: true,
         onUpdate: (self) => { G.set(bar, { scaleX: self.progress }); bend(self.getVelocity()); },
       });
       tween.eventCallback('onUpdate', checkCards);
+      // Переход Tab’ом на карточку за краем экрана — прокручиваем ленту к ней
+      const onFocus = (e) => {
+        if (!e.target.matches(':focus-visible')) return; // только клавиатура, не клик мышью
+        const i = cards.indexOf(e.currentTarget);
+        scrollToY(pinSt.start + (pinSt.end - pinSt.start) * (i / (cards.length - 1)));
+      };
+      cards.forEach((c) => c.addEventListener('focusin', onFocus));
+      // Страховка для старых браузеров без overflow: clip
+      const unshift = () => { if (sec.scrollLeft) sec.scrollLeft = 0; };
+      sec.addEventListener('scroll', unshift);
       // Фото внутри карточки едет медленнее самой карточки — параллакс
       cards.forEach((c) => {
         G.fromTo($('.proj__img', c), { xPercent: 8 }, {
@@ -445,7 +482,8 @@
       checkCards();
       return () => {
         sec.classList.remove('is-h');
-        cards.forEach((c) => c.classList.remove('is-built'));
+        cards.forEach((c) => { c.classList.remove('is-built'); c.removeEventListener('focusin', onFocus); });
+        sec.removeEventListener('scroll', unshift);
       };
     });
     mm.add('(max-width: 899px)', native);
@@ -476,11 +514,15 @@
     const termEl = $('#term');
     const sqmEl = $('#sqm');
     const hint = $('#finishHint');
+    const wallHint = $('#wallHint');
     const label = $('#cvLabel');
     const cvImgs = $$('.cv-img');
     const cvArea = $('#cvArea');
     const cvFloors = $('#cvFloors');
     const cvFinish = $('#cvFinish');
+    const mbarPrice = $('#mbarPrice');
+    const live = $('#calcLive');
+    let liveT = 0;
 
     // Цены условные (₽ за м², тёплый контур) — поправить под реальные
     const RATE = { gas: 46000, brick: 58000, frame: 36000, timber: 41000 };
@@ -488,6 +530,12 @@
     const MAT = { gas: 'газобетон D500', brick: 'керамический кирпич', frame: 'каркас, утепление 200 мм', timber: 'клеёный брус 200 мм' };
     const MAT_SHORT = { gas: 'газобетон', brick: 'кирпич', frame: 'каркас', timber: 'брус' };
     const FIN_SHORT = { shell: 'тёплый контур', prefinish: 'под чистовую', turnkey: 'под ключ' };
+    const WALL_TEXT = {
+      gas: 'Тёплый, быстро кладётся и не даёт усадки. Самый частый выбор наших заказчиков.',
+      brick: 'Самый прочный и долговечный, но дороже и строится на месяц дольше.',
+      frame: 'Самый быстрый и доступный: на месяц быстрее. Тепло держит утеплитель 200 мм.',
+      timber: 'Натуральное дерево и приятный микроклимат. Клеёный брус почти не даёт усадки.',
+    };
     const FIN_TEXT = {
       shell: 'Фундамент, стены, кровля, окна и входная дверь. Снаружи готовый дом, внутри голые стены.',
       prefinish: 'Плюс инженерные сети, стяжка и штукатурка. Остаётся поклеить обои и положить пол.',
@@ -496,6 +544,7 @@
 
     const shown = { v: 0 };
     let first = true;
+    let firstRun = true;
     let lastPrice = 0;
 
     const update = () => {
@@ -515,12 +564,14 @@
       termEl.textContent = months + ' ' + plural(months, ['месяц', 'месяца', 'месяцев']);
       sqmEl.textContent = fmt(price / a) + ' ₽';
       hint.textContent = FIN_TEXT[fin];
+      wallHint.textContent = WALL_TEXT[mat];
       // Фото дома из выбранного материала плавно сменяет предыдущее
       label.textContent = MAT[mat];
       cvImgs.forEach((im) => im.classList.toggle('is-on', im.dataset.mat === mat));
       cvArea.textContent = a + ' м²';
       cvFloors.textContent = floors === 1 ? '1 этаж' : '2 этажа';
       cvFinish.textContent = FIN_SHORT[fin];
+      mbarPrice.textContent = '≈ ' + (price / 1e6).toFixed(1).replace('.', ',') + ' млн ₽';
 
       if (motion && !first) {
         G.to(shown, { v: price, duration: 0.9, ease: 'power3.out', overwrite: true, onUpdate: () => { priceEl.textContent = fmt(shown.v); } });
@@ -532,11 +583,59 @@
       first = false;
       lastPrice = price;
       calcSummary = `Расчёт на сайте: ${a} м², ${floors === 1 ? '1 этаж' : '2 этажа'}, ${MAT_SHORT[mat]}, ${FIN_SHORT[fin]} — около ${fmt(price)} ₽`;
+      // Озвучиваем итог, когда человек перестал двигать ползунок
+      if (!firstRun) {
+        clearTimeout(liveT);
+        liveT = setTimeout(() => { live.textContent = `Примерная стоимость ${fmt(price)} рублей, срок ${termEl.textContent}`; }, 600);
+      }
+      firstRun = false;
     };
+
+    // Расчёт из ссылки «Поделиться»: ?area=180&floors=1&wall=brick&finish=turnkey
+    const qs = new URLSearchParams(location.search);
+    const setRadio = (nm, v) => {
+      const r = form.querySelector(`input[name="${nm}"][value="${v}"]`);
+      if (r) r.checked = true;
+    };
+    const qArea = Number(qs.get('area'));
+    if (qArea >= 60 && qArea <= 300) area.value = Math.round(qArea / 5) * 5;
+    ['floors', 'wall', 'finish'].forEach((nm) => { if (qs.has(nm)) setRadio(nm, qs.get(nm)); });
 
     form.addEventListener('input', update);
     form.addEventListener('change', update);
     update();
+
+    // Поделиться: на телефоне — системное меню, на компьютере — копируем ссылку
+    const shareBtn = $('#calcShare');
+    const shareLabel = $('span', shareBtn);
+    const shareStatus = $('#shareStatus');
+    shareBtn.addEventListener('click', async () => {
+      const url = new URL(location.href);
+      url.search = '';
+      url.searchParams.set('area', area.value);
+      url.searchParams.set('floors', form.elements.floors.value);
+      url.searchParams.set('wall', form.elements.wall.value);
+      url.searchParams.set('finish', form.elements.finish.value);
+      url.hash = 'calc';
+      const link = url.toString();
+      const done = (msg) => {
+        shareLabel.textContent = msg;
+        shareStatus.textContent = msg;
+        shareBtn.classList.add('is-done');
+        setTimeout(() => { shareLabel.textContent = 'Поделиться расчётом'; shareBtn.classList.remove('is-done'); }, 2500);
+      };
+      try {
+        if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+          await navigator.share({ title: 'Расчёт дома — «Отвес»', text: calcSummary, url: link });
+        } else {
+          await navigator.clipboard.writeText(link);
+          done('Ссылка скопирована');
+        }
+      } catch (e) {
+        if (e && e.name === 'AbortError') return; // человек закрыл меню «Поделиться»
+        window.prompt('Скопируйте ссылку на расчёт:', link);
+      }
+    });
 
     // Жёлтая «таблетка» под выбранным вариантом
     $$('.seg').forEach((seg) => {
@@ -568,11 +667,16 @@
   /* ---------- Подстановка текста в заявку ---------- */
   const msgField = $('#fMsg');
   msgField.dataset.auto = '1';
+  msgField.addEventListener('animationend', () => msgField.classList.remove('is-filled'));
   msgField.addEventListener('input', () => { msgField.dataset.auto = msgField.value.trim() ? '0' : '1'; });
   function setMessage(text) {
     if (msgField.dataset.auto === '1' || !msgField.value.trim()) {
       msgField.value = text;
       msgField.dataset.auto = '1';
+      // Поле коротко подсвечивается, чтобы было видно: расчёт уже подставлен
+      msgField.classList.remove('is-filled');
+      void msgField.offsetWidth; // перезапуск CSS-анимации
+      msgField.classList.add('is-filled');
     }
   }
   $$('[data-project]').forEach((a) => {
@@ -597,6 +701,12 @@
     G.fromTo(spans, { opacity: 0.16 }, {
       opacity: 1, stagger: 0.1, ease: 'none',
       scrollTrigger: { trigger: statement, start: 'top 82%', end: 'bottom 45%', scrub: true },
+    });
+
+    // Фото стропил под секцией едет медленнее страницы
+    G.fromTo('.why__photo img', { yPercent: -12 }, {
+      yPercent: 0, ease: 'none',
+      scrollTrigger: { trigger: '.why', start: 'top bottom', end: 'bottom top', scrub: true },
     });
 
     // Карточки гарантий «прорезаются» слева направо
@@ -626,6 +736,9 @@
     const name = $('#fName');
     const phone = $('#fPhone');
     const agree = $('#fAgree');
+    const submitBtn = $('.lead__submit');
+    const submitLabel = $('span', submitBtn);
+    const submitText = submitLabel.textContent;
 
     const formatPhone = (v) => {
       let d = v.replace(/\D/g, '');
@@ -645,7 +758,12 @@
       if (e.inputType && e.inputType.startsWith('delete')) return;
       phone.value = formatPhone(phone.value);
     });
-    phone.addEventListener('blur', () => { phone.value = formatPhone(phone.value); });
+    phone.addEventListener('blur', () => {
+      phone.value = formatPhone(phone.value);
+      // Номер начали, но не дописали — подсказываем сразу, а не после отправки
+      const n = phone.value.replace(/\D/g, '').length;
+      if (n > 1 && n !== 11) mark(phone, $('#errPhone'), true);
+    });
 
     const mark = (input, err, bad) => {
       err.hidden = !bad;
@@ -674,21 +792,30 @@
 
       // ДЕМО: здесь заявку нужно отправить на сервер
       // (например, функцию в Yandex Cloud, которая пришлёт письмо владельцу).
+      // Пока «отправляется» — кнопка показывает это и не нажимается второй раз
+      submitBtn.disabled = true;
+      submitBtn.setAttribute('aria-busy', 'true');
+      submitLabel.textContent = 'Отправляем…';
       const swap = () => {
         form.hidden = true;
         done.hidden = false;
         done.focus({ preventScroll: true });
       };
-      if (motion) {
-        G.timeline()
-          .to(rig, { y: 16, duration: 0.18, ease: 'power1.out' })
-          .to(rig, { y: -window.innerHeight * 1.1, duration: 0.75, ease: 'power3.in' })
-          .add(swap)
-          .fromTo(rig, { y: -window.innerHeight * 0.7, rotation: -5 }, { y: 0, rotation: 0, duration: 1.6, ease: 'elastic.out(1, 0.4)' });
-      } else swap();
+      setTimeout(() => {
+        if (motion) {
+          G.timeline()
+            .to(rig, { y: 16, duration: 0.18, ease: 'power1.out' })
+            .to(rig, { y: -window.innerHeight * 1.1, duration: 0.75, ease: 'power3.in' })
+            .add(swap)
+            .fromTo(rig, { y: -window.innerHeight * 0.7, rotation: -5 }, { y: 0, rotation: 0, duration: 1.6, ease: 'elastic.out(1, 0.4)' });
+        } else swap();
+      }, 700);
     });
 
     $('#leadAgain').addEventListener('click', () => {
+      submitBtn.disabled = false;
+      submitBtn.removeAttribute('aria-busy');
+      submitLabel.textContent = submitText;
       form.reset();
       msgField.dataset.auto = '1';
       done.hidden = true;
@@ -776,14 +903,14 @@
 
   /* ---------- Заголовки: буквы выпрыгивают из-под строки ---------- */
   function splitHeadings() {
-    $$('.build__title, .projects .h2, .calc .h2, .contact .h2').forEach((h) => {
+    $$('.build__title, .projects .h2, .calc .h2, .faq .h2, .contact .h2').forEach((h) => {
       G.from(splitChars(h), {
         yPercent: 120, rotation: 12, transformOrigin: '0% 100%',
         duration: 1, ease: 'power4.out', stagger: 0.022,
         scrollTrigger: { trigger: h, start: 'top 88%', toggleActions: 'play none none reverse' },
       });
     });
-    $$('.projects__head p, .calc__head p, .contact__text > p').forEach((p) => {
+    $$('.projects__head > p, .calc__head > p, .faq__head > p:not(.eyebrow), .contact__text > p:not(.eyebrow)').forEach((p) => {
       G.from(splitWords(p), {
         y: 16, opacity: 0, filter: 'blur(6px)', duration: 0.7, ease: 'power2.out', stagger: 0.018,
         clearProps: 'filter',
@@ -823,29 +950,51 @@
 
     $$('.num').forEach((n, i) => {
       const b = $('b', n);
+      const unit = $('.num__v span', n);
       const to = Number(b.dataset.to);
       const o = { v: 0 };
+      // Скринридер читает итоговое число, а не «0» до анимации
+      const sr = document.createElement('span');
+      sr.className = 'vh';
+      sr.textContent = `${to} ${unit.textContent}`;
+      b.parentElement.prepend(sr);
+      b.setAttribute('aria-hidden', 'true');
+      unit.setAttribute('aria-hidden', 'true');
       b.textContent = '0';
       G.timeline({ delay: (i % 4) * 0.1, scrollTrigger: { trigger: n, start: 'top 88%', once: true } })
         .from(n, { y: 90, opacity: 0, duration: 0.9, ease: 'power3.out' })
         .to(o, { v: to, duration: 2, ease: 'expo.out', onUpdate: () => { b.textContent = fmt(o.v); } }, 0.15)
         .from($('.num__ruler', n), { scaleX: 0, duration: 1.3, ease: 'power3.inOut' }, 0.15)
-        .from($('.num__v span', n), { opacity: 0, x: -20, duration: 0.6 }, 0.6);
+        .from(unit, { opacity: 0, x: -20, duration: 0.6 }, 0.6);
     });
     velSkew('.num', '.nums', 'skewY');
+    G.from('.nums__cta > *', {
+      y: 30, opacity: 0, duration: 0.9, stagger: 0.12, ease: 'power3.out',
+      scrollTrigger: { trigger: '.nums__cta', start: 'top 90%', once: true },
+    });
   }
 
-  /* ---------- Заявка наезжает на гарантии, а те уходят вглубь ---------- */
+  /* ---------- Вопросы наезжают на гарантии, а те уходят вглубь ---------- */
   function contactFx() {
-    G.fromTo('.contact',
+    G.fromTo('.faq',
       { borderTopLeftRadius: 220, borderTopRightRadius: 220 },
       {
         borderTopLeftRadius: 0, borderTopRightRadius: 0, ease: 'none',
-        scrollTrigger: { trigger: '.contact', start: 'top bottom', end: 'top 20%', scrub: true },
+        scrollTrigger: { trigger: '.faq', start: 'top bottom', end: 'top 20%', scrub: true },
       });
     G.to('.why > .container', {
       scale: 0.9, opacity: 0.3, yPercent: 8, ease: 'none',
-      scrollTrigger: { trigger: '.contact', start: 'top bottom', end: 'top top', scrub: true },
+      scrollTrigger: { trigger: '.faq', start: 'top bottom', end: 'top top', scrub: true },
+    });
+    // Раскрытый ответ меняет высоту страницы — пересчитываем точки анимаций ниже
+    $$('.faq__item').forEach((d) => d.addEventListener('toggle', () => ST.refresh()));
+    G.from('.faq__item', {
+      y: 40, opacity: 0, duration: 0.8, stagger: 0.08, ease: 'power3.out',
+      scrollTrigger: { trigger: '.faq__list', start: 'top 85%', once: true },
+    });
+    G.from('.after li', {
+      x: -40, opacity: 0, duration: 0.8, stagger: 0.14, ease: 'power3.out',
+      scrollTrigger: { trigger: '.after', start: 'top 88%', once: true },
     });
     G.from('.contact__ways li', {
       x: -50, opacity: 0, duration: 0.9, stagger: 0.12, ease: 'power3.out',
@@ -1004,7 +1153,24 @@
 
     const refresh = () => ST.refresh();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(refresh);
-    window.addEventListener('load', refresh);
+    // Ссылка с якорем (#calc, #faq): закреплённые секции удлиняют страницу,
+    // и браузер прыгает не туда — переходим к разделу сами, когда всё посчитано
+    const jumpToHash = () => {
+      const id = location.hash.slice(1);
+      const el = id && document.getElementById(id);
+      if (!el || id === 'top') return false;
+      if (lenis) lenis.resize();
+      const y = targetY(el);
+      if (Math.abs(window.scrollY - y) < 30) return false;
+      if (lenis) lenis.scrollTo(y, { immediate: true, force: true });
+      else window.scrollTo(0, y);
+      return true;
+    };
+    window.addEventListener('load', () => {
+      refresh();
+      // Даём закреплённым секциям досчитаться, прыгаем и один раз сверяемся
+      setTimeout(() => { if (jumpToHash()) setTimeout(jumpToHash, 400); }, 250);
+    });
   } else {
     html.classList.remove('intro', 'loading');
     projects();

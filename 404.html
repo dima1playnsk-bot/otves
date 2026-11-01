@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Страница не найдена — «Отвес»</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#1D4596">
+  <link rel="icon" href="/otves/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Alumni+Sans:ital,wght@0,800;1,600&family=Onest:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --blue: #1D4596; --signal: #FFB800; --black: #17191C; }
+    * { box-sizing: border-box; }
+    html { height: 100%; }
+    body {
+      min-height: 100%; /* не height: иначе на низком экране верх обрезается */
+      margin: 0; display: grid; place-items: center; padding: 24px;
+      background-color: var(--blue);
+      background-image:
+        linear-gradient(rgba(255,255,255,.14) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.14) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.055) 1px, transparent 1px);
+      background-size: 120px 120px, 120px 120px, 24px 24px, 24px 24px;
+      color: #fff; font: 17px/1.6 'Onest', system-ui, sans-serif; text-align: center;
+    }
+    .plumb { position: relative; width: 2px; height: 120px; margin: 0 auto 12px; background: rgba(255,255,255,.8); transform-origin: 50% 0; animation: swing 2.6s ease-in-out infinite; }
+    .plumb::after { content: ""; position: absolute; left: -12px; top: 100%; width: 26px; height: 36px; background: var(--signal); clip-path: polygon(0 0, 100% 0, 50% 100%); }
+    @keyframes swing { 0%, 100% { transform: rotate(9deg); } 50% { transform: rotate(-9deg); } }
+    @media (prefers-reduced-motion: reduce) { .plumb { animation: none; } }
+    .code { margin: 40px 0 0; font: 800 clamp(110px, 24vw, 220px)/.8 'Alumni Sans', sans-serif; color: var(--signal); }
+    h1 { margin: 18px 0 10px; font: 800 clamp(36px, 6vw, 56px)/.95 'Alumni Sans', sans-serif; }
+    p { max-width: 26em; margin: 0 auto 30px; color: rgba(255,255,255,.82); }
+    a.btn {
+      display: inline-flex; align-items: center; min-height: 56px; padding: 0 28px; border-radius: 6px;
+      background: var(--signal); color: var(--black); font-weight: 600; text-decoration: none;
+      transition: background-color .3s, color .3s;
+    }
+    a.btn:hover { background: var(--black); color: var(--signal); }
+    a.btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="plumb" aria-hidden="true"></div>
+    <p class="code" aria-hidden="true">404</p>
+    <h1>Такой страницы нет</h1>
+    <p>Отвес показывает строго вниз, а&nbsp;эта ссылка ведёт мимо. Вернитесь на&nbsp;главную&nbsp;— там всё по&nbsp;уровню.</p>
+    <a class="btn" href="/otves/">На главную</a>
+  </main>
+</body>
+</html>
