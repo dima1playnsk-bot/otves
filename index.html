@@ -13,14 +13,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Alumni+Sans:ital,wght@0,400..900;1,400..900&family=Onest:wght@400..700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2">
+  <link rel="preconnect" href="https://images.unsplash.com">
+  <link rel="stylesheet" href="styles.css?v=4">
 
   <script>
     // Если в системе выключены анимации — сайт по умолчанию спокойный,
     // но посетитель может включить их кнопкой (выбор запоминается).
     (function () {
-      var d = document.documentElement, forced = false;
+      var d = document.documentElement, forced = false, seen = false;
       try { forced = localStorage.getItem('otves-motion') === 'on'; } catch (e) {}
+      try { seen = sessionStorage.getItem('otves-seen') === '1'; } catch (e) {}
       if (/[?&]motion=1/.test(location.search)) forced = true;
       var osReduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
       window.__otvesOsReduce = osReduce;
@@ -28,14 +30,50 @@
       if (window.__otvesReduce) {
         d.classList.add('reduce');
       } else {
-        // Прячем первый экран до старта анимации; если скрипты не загрузятся — покажем через 4 с
+        // Прячем первый экран до старта анимации (при первом заходе ещё и заставка).
+        // Если скрипты не загрузятся — покажем всё через 4 с
         d.classList.add('intro');
-        setTimeout(function () { d.classList.remove('intro'); }, 4000);
+        if (!seen) d.classList.add('loading');
+        setTimeout(function () { if (!window.__otvesStarted) d.classList.remove('intro', 'loading'); }, 4000);
       }
     })();
   </script>
 </head>
 <body>
+
+<!-- Значки стройматериалов, которые летают по секциям -->
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="f-bolt" viewBox="0 0 48 48"><path d="M24 5L40.5 14.5V33.5L24 43L7.5 33.5V14.5Z"/><circle cx="24" cy="24" r="7.5"/></symbol>
+  <symbol id="f-cross" viewBox="0 0 48 48"><circle cx="24" cy="24" r="13"/><path d="M24 3V45M3 24H45"/></symbol>
+  <symbol id="f-brick" viewBox="0 0 48 48"><rect x="3" y="13" width="42" height="22" rx="1.5"/><path d="M3 24H45M17 13V24M31 24V35"/></symbol>
+  <symbol id="f-square" viewBox="0 0 48 48"><path d="M5 43V5L43 43Z"/><path d="M12 36V22L26 36Z"/><path d="M5 12H9M5 19H9M5 26H9M5 33H9"/></symbol>
+  <symbol id="f-level" viewBox="0 0 48 48"><rect x="2" y="17" width="44" height="14" rx="2"/><rect x="18" y="20.5" width="12" height="7" rx="3.5"/><path d="M24 20.5V27.5"/></symbol>
+  <symbol id="f-screw" viewBox="0 0 48 48"><path d="M17 5H31L29 11H19Z"/><path d="M24 11V43"/><path d="M20 15L28 19M20 21L28 25M20 27L28 31M20 33L28 37"/></symbol>
+</svg>
+
+<!-- Заставка при первом заходе: отвес падает и выставляет уровень -->
+<div class="loader" aria-hidden="true">
+  <div class="loader__half loader__half--t"></div>
+  <div class="loader__half loader__half--b"></div>
+  <div class="loader__plumb">
+    <i class="loader__line"></i>
+    <svg class="loader__bob" viewBox="0 0 26 36"><path d="M2 0H24L13 35Z"/></svg>
+  </div>
+  <i class="loader__level"></i>
+  <div class="loader__info">
+    <span class="loader__num">0</span>
+    <span class="loader__cap">Выставляем по&nbsp;уровню</span>
+  </div>
+</div>
+
+<!-- Отвес сбоку: опускается по мере прокрутки и качается от скорости -->
+<div class="plumb" aria-hidden="true">
+  <i class="plumb__line"></i>
+  <div class="plumb__bob">
+    <svg viewBox="0 0 20 28"><path d="M1 0H19L10 27Z"/></svg>
+    <span class="plumb__mark">±0,000</span>
+  </div>
+</div>
 
 <a class="skip" href="#main">Перейти к содержанию</a>
 
@@ -82,11 +120,15 @@
 
   <!-- ============ ПЕРВЫЙ ЭКРАН ============ -->
   <section class="hero" id="top">
+    <div class="hero__photo" aria-hidden="true">
+      <img src="https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=1800&q=80"
+           srcset="https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=900&q=75 900w,
+                   https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=1500&q=80 1500w,
+                   https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=2400&q=80 2400w"
+           sizes="100vw" alt="" fetchpriority="high">
+    </div>
     <div class="hero__grid" aria-hidden="true"></div>
     <canvas class="hero__snow" aria-hidden="true"></canvas>
-    <div class="cross" aria-hidden="true">
-      <i class="cross__x"></i><i class="cross__y"></i><span class="cross__coords"></span>
-    </div>
 
     <div class="container hero__inner">
       <div class="hero__text">
@@ -100,72 +142,12 @@
         </div>
       </div>
 
-      <figure class="hero__drawing" aria-hidden="true">
-        <svg class="bp" viewBox="0 0 600 500" fill="none">
-          <g class="bp-glow">
-            <rect x="140" y="320" width="60" height="42"/>
-            <rect x="360" y="320" width="60" height="42"/>
-            <rect x="140" y="235" width="60" height="45"/>
-            <rect x="250" y="235" width="60" height="45"/>
-            <rect x="360" y="235" width="60" height="45"/>
-            <circle cx="280" cy="168" r="16"/>
-          </g>
-          <g class="bp-lines" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
-            <path class="d" d="M20 400H580"/>
-            <path class="d" d="M100 400V385H460V400"/>
-            <path class="d" d="M110 385V215H450V385"/>
-            <path class="d thin" d="M110 300H450"/>
-            <path class="d" d="M86 224L280 94L474 224"/>
-            <path class="d thin" d="M100 222L280 104L460 222"/>
-            <path class="d" d="M372 156V118H398V173"/>
-            <path class="d thin" d="M366 118H404"/>
-            <rect class="d" x="140" y="320" width="60" height="42"/>
-            <path class="d thin" d="M170 320V362"/>
-            <rect class="d" x="360" y="320" width="60" height="42"/>
-            <path class="d thin" d="M390 320V362"/>
-            <path class="d" d="M255 385V318H305V385"/>
-            <path class="d thin" d="M262 385V326H298V385"/>
-            <path class="d thin" d="M244 310H316"/>
-            <rect class="d" x="140" y="235" width="60" height="45"/>
-            <path class="d thin" d="M170 235V280"/>
-            <rect class="d" x="250" y="235" width="60" height="45"/>
-            <path class="d thin" d="M280 235V280"/>
-            <rect class="d" x="360" y="235" width="60" height="45"/>
-            <path class="d thin" d="M390 235V280"/>
-            <circle class="d" cx="280" cy="168" r="16"/>
-            <path class="d thin" d="M264 168H296M280 152V184"/>
-          </g>
-          <g class="bp-dims" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-            <path class="dm" d="M110 405V452M450 405V452"/>
-            <path class="dm" d="M96 440H464"/>
-            <path class="dm" d="M104 446L116 434M444 446L456 434"/>
-            <path class="dm" d="M104 215H48M98 385H48"/>
-            <path class="dm" d="M56 200V400"/>
-            <path class="dm" d="M50 221L62 209M50 391L62 379"/>
-            <path class="dm" d="M462 400H560M462 300H560M462 215H560M300 94H560"/>
-            <path class="dm" d="M500 400L494 392H506ZM500 300L494 292H506ZM500 215L494 207H506ZM500 94L494 86H506Z"/>
-            <path class="dm" d="M110 455V471M450 455V471"/>
-            <circle class="dm" cx="110" cy="482" r="11"/>
-            <circle class="dm" cx="450" cy="482" r="11"/>
-            <path class="dm" d="M40 128V152M29.6 134L50.4 146M29.6 146L50.4 134"/>
-          </g>
-          <g class="bp-text">
-            <text class="tx tx--title" x="20" y="40">Фасад 1–2</text>
-            <text class="tx" x="280" y="434" text-anchor="middle">12 000</text>
-            <text class="tx" transform="translate(50 300) rotate(-90)" text-anchor="middle">6 600</text>
-            <text class="tx" x="512" y="394">±0,000</text>
-            <text class="tx" x="512" y="294">+3,300</text>
-            <text class="tx" x="512" y="209">+6,600</text>
-            <text class="tx" x="512" y="88">+9,800</text>
-            <text class="tx" x="110" y="488" text-anchor="middle">1</text>
-            <text class="tx" x="450" y="488" text-anchor="middle">2</text>
-            <text class="tx tx--big" x="228" y="352" text-anchor="middle"><tspan data-count="22">+22</tspan>°</text>
-            <text class="tx tx--small" x="228" y="370" text-anchor="middle">в доме</text>
-            <text class="tx tx--big" x="40" y="182" text-anchor="middle"><tspan data-count="-40">−40</tspan>°</text>
-            <text class="tx tx--small" x="40" y="199" text-anchor="middle">на улице</text>
-          </g>
-        </svg>
-      </figure>
+    </div>
+
+    <!-- Подписи-«замеры» прямо на фотографии -->
+    <div class="hero__temps" aria-hidden="true">
+      <span class="temp temp--out"><b data-count="-40">−40</b>°&nbsp;на&nbsp;улице</span>
+      <span class="temp temp--in"><b data-count="22">+22</b>°&nbsp;в&nbsp;доме</span>
     </div>
 
     <table class="stamp" aria-label="Коротко о компании">
@@ -204,146 +186,15 @@
       <div class="build__scene">
         <div class="build__grid" aria-hidden="true"></div>
 
-        <svg class="scene" id="scene" viewBox="0 0 800 560" preserveAspectRatio="xMidYMax meet" role="img" aria-labelledby="sceneTitle">
-          <title id="sceneTitle">Дом строится по этапам: чертёж, фундамент, стены, кровля, окна и фасад, благоустройство</title>
-          <defs>
-            <pattern id="planks" width="12" height="9" patternUnits="userSpaceOnUse">
-              <rect width="12" height="9" fill="#C28B57"/>
-              <path d="M0 8.5H12" stroke="#9C6B3F" stroke-width="1"/>
-            </pattern>
-            <pattern id="fencePat" width="14" height="40" patternUnits="userSpaceOnUse">
-              <rect x="1" width="10" height="40" fill="#8A6142"/>
-            </pattern>
-            <radialGradient id="lampGrad">
-              <stop offset="0" stop-color="#FFD27A" stop-opacity=".95"/>
-              <stop offset="1" stop-color="#FFD27A" stop-opacity="0"/>
-            </radialGradient>
-            <filter id="soft" x="-60%" y="-60%" width="220%" height="220%">
-              <feGaussianBlur stdDeviation="7"/>
-            </filter>
-          </defs>
-
-          <!-- небо -->
-          <g id="stars" fill="#fff">
-            <circle cx="90" cy="60" r="1.6"/><circle cx="180" cy="120" r="1.2"/><circle cx="300" cy="40" r="1.4"/>
-            <circle cx="470" cy="70" r="1.2"/><circle cx="560" cy="26" r="1.6"/><circle cx="720" cy="90" r="1.3"/>
-            <circle cx="760" cy="40" r="1"/><circle cx="20" cy="140" r="1.2"/><circle cx="640" cy="160" r="1"/>
-          </g>
-          <circle id="sun" cx="660" cy="140" r="30" fill="#FFD45C" opacity="0"/>
-
-          <!-- земля и двор -->
-          <rect id="soil" x="-2000" y="470" width="4800" height="400" fill="#6B5847"/>
-          <rect id="grass" x="-2000" y="465" width="4800" height="9" fill="#6E9B4E"/>
-          <path id="path" d="M372 470H428L470 560H330Z" fill="#D8D0C2"/>
-          <g id="fenceL"><rect x="-400" y="438" width="560" height="32" fill="url(#fencePat)"/><rect x="-400" y="446" width="560" height="4" fill="#6E4C33"/></g>
-          <g id="fenceR"><rect x="616" y="438" width="600" height="32" fill="url(#fencePat)"/><rect x="616" y="446" width="600" height="4" fill="#6E4C33"/></g>
-          <g id="tree2"><rect x="137" y="428" width="6" height="42" fill="#6B4A32"/><circle cx="140" cy="414" r="22" fill="#5E8F50"/><circle cx="125" cy="430" r="13" fill="#4F7D45"/></g>
-          <g id="tree"><rect x="684" y="400" width="9" height="70" fill="#6B4A32"/><circle cx="688" cy="380" r="34" fill="#4F7D45"/><circle cx="664" cy="402" r="22" fill="#5E8F50"/><circle cx="712" cy="404" r="22" fill="#5E8F50"/></g>
-          <g id="lamp"><rect x="603" y="400" width="4" height="70" fill="#2E3338"/><rect x="597" y="394" width="16" height="7" rx="2" fill="#2E3338"/></g>
-
-          <!-- фундамент -->
-          <g id="rebar" fill="none" stroke="#8D6E5A" stroke-width="1.4">
-            <path d="M232 460H568"/><path d="M232 468H568"/><path d="M232 476H568"/>
-            <path d="M250 456V480M290 456V480M330 456V480M370 456V480M410 456V480M450 456V480M490 456V480M530 456V480M560 456V480"/>
-          </g>
-          <rect id="slab" x="228" y="455" width="344" height="27" fill="#A9ABA7"/>
-          <rect id="plinth" x="228" y="455" width="344" height="15" fill="#3B4047"/>
-          <g id="porch" fill="#8E9194"><rect x="366" y="455" width="68" height="8"/><rect x="358" y="462" width="84" height="8"/></g>
-
-          <!-- стены -->
-          <g id="blocks"></g>
-          <rect id="band1" x="236" y="355" width="328" height="20" fill="#A3A7A9"/>
-          <rect id="band2" x="236" y="243" width="328" height="12" fill="#A3A7A9"/>
-          <rect id="plaster" x="236" y="243" width="328" height="212" fill="#EEEAE2"/>
-
-          <!-- кровля -->
-          <g id="chimney"><rect x="468" y="140" width="26" height="38" fill="#5B5550"/><rect x="464" y="134" width="34" height="7" fill="#3B4047"/></g>
-          <g id="rafters" fill="none" stroke="#B88A5E" stroke-width="5" stroke-linecap="round">
-            <path d="M200 265L400 131L600 265"/><path d="M236 243H564"/><path d="M400 131V243"/><path d="M400 215L318 186M400 215L482 186"/>
-          </g>
-          <polygon id="gable" points="240,243 240,238 400,130 560,238 560,243" fill="url(#planks)"/>
-          <polygon id="roofband" points="196,256 400,116 604,256 604,268 400,130 196,268" fill="#2F343A"/>
-
-          <!-- окна и дверь -->
-          <g id="windows">
-            <g class="win"><rect x="268" y="375" width="64" height="60" fill="#2F343A"/><rect class="glass" x="273" y="380" width="54" height="50" fill="#A9C9E4"/><path d="M300 380V430M273 405H327" stroke="#2F343A" stroke-width="3"/><rect x="263" y="433" width="74" height="4" fill="#2F343A"/></g>
-            <g class="win"><rect x="468" y="375" width="64" height="60" fill="#2F343A"/><rect class="glass" x="473" y="380" width="54" height="50" fill="#A9C9E4"/><path d="M500 380V430M473 405H527" stroke="#2F343A" stroke-width="3"/><rect x="463" y="433" width="74" height="4" fill="#2F343A"/></g>
-            <g class="win"><rect x="268" y="275" width="64" height="60" fill="#2F343A"/><rect class="glass" x="273" y="280" width="54" height="50" fill="#A9C9E4"/><path d="M300 280V330M273 305H327" stroke="#2F343A" stroke-width="3"/><rect x="263" y="333" width="74" height="4" fill="#2F343A"/></g>
-            <g class="win"><rect x="368" y="275" width="64" height="60" fill="#2F343A"/><rect class="glass" x="373" y="280" width="54" height="50" fill="#A9C9E4"/><path d="M400 280V330M373 305H427" stroke="#2F343A" stroke-width="3"/><rect x="363" y="333" width="74" height="4" fill="#2F343A"/></g>
-            <g class="win"><rect x="468" y="275" width="64" height="60" fill="#2F343A"/><rect class="glass" x="473" y="280" width="54" height="50" fill="#A9C9E4"/><path d="M500 280V330M473 305H527" stroke="#2F343A" stroke-width="3"/><rect x="463" y="333" width="74" height="4" fill="#2F343A"/></g>
-          </g>
-          <g id="door"><rect x="380" y="375" width="40" height="80" fill="#2F343A"/><rect x="384" y="379" width="32" height="76" fill="#A0703F"/><rect x="390" y="386" width="8" height="40" fill="#A9C9E4"/><circle cx="410" cy="418" r="2" fill="#2F343A"/></g>
-          <rect id="canopy" x="366" y="366" width="68" height="6" fill="#2F343A"/>
-          <g id="bushes" fill="#5E8F50"><circle cx="252" cy="462" r="12"/><circle cx="274" cy="466" r="8"/><circle cx="526" cy="466" r="8"/><circle cx="548" cy="462" r="12"/></g>
-
-          <!-- вечер: затемнение и свет в окнах -->
-          <rect id="dusk" x="-2000" y="-400" width="4800" height="1400" fill="#141B3A" opacity=".2"/>
-          <g id="light">
-            <g fill="#FFB547" filter="url(#soft)" opacity=".75">
-              <rect x="268" y="375" width="64" height="60"/><rect x="468" y="375" width="64" height="60"/><rect x="268" y="275" width="64" height="60"/><rect x="368" y="275" width="64" height="60"/><rect x="468" y="275" width="64" height="60"/>
-            </g>
-            <g fill="#FFCB6B">
-              <rect x="273" y="380" width="54" height="50"/><rect x="473" y="380" width="54" height="50"/><rect x="273" y="280" width="54" height="50"/><rect x="373" y="280" width="54" height="50"/><rect x="473" y="280" width="54" height="50"/><rect x="390" y="386" width="8" height="40"/>
-            </g>
-            <path d="M300 380V430M273 405H327M500 380V430M473 405H527M300 280V330M273 305H327M400 280V330M373 305H427M500 280V330M473 305H527" stroke="#2F343A" stroke-width="3"/>
-          </g>
-          <circle id="lampGlow" cx="605" cy="400" r="42" fill="url(#lampGrad)"/>
-          <g id="smoke" fill="#D9D9D9" opacity=".6"><circle cx="481" cy="126" r="7"/><circle cx="481" cy="126" r="7"/><circle cx="481" cy="126" r="7"/></g>
-
-          <!-- чертёж поверх -->
-          <path id="groundline" d="M-2000 470H2800" stroke="#fff" stroke-width="2" opacity="0"/>
-          <g id="ghost" fill="none" stroke="#fff" stroke-width="1.6" stroke-linejoin="round" opacity="0">
-            <path d="M228 470V455H572V470"/>
-            <path d="M240 455V243H560V455"/>
-            <path d="M240 355H560"/>
-            <path d="M196 262L400 122L604 262"/>
-            <rect x="268" y="375" width="64" height="60"/><rect x="468" y="375" width="64" height="60"/>
-            <rect x="268" y="275" width="64" height="60"/><rect x="368" y="275" width="64" height="60"/><rect x="468" y="275" width="64" height="60"/>
-            <rect x="380" y="375" width="40" height="80"/>
-          </g>
-          <g id="dims" fill="none" stroke="#fff" stroke-width="1.2" opacity="0">
-            <path class="sd" d="M240 476V514M560 476V514"/>
-            <path class="sd" d="M226 505H574"/>
-            <path class="sd" d="M234 511L246 499M554 511L566 499"/>
-            <path class="sd" d="M572 455H668M572 355H668M572 243H668"/>
-            <path class="sd" d="M630 455L624 447H636ZM630 355L624 347H636ZM630 243L624 235H636Z"/>
-            <g class="stx" fill="#fff" stroke="none">
-              <text x="400" y="498" text-anchor="middle">12 000</text>
-              <text x="642" y="449">±0,000</text>
-              <text x="642" y="349">+3,300</text>
-              <text x="642" y="237">+6,600</text>
-            </g>
-          </g>
-
-          <!-- башенный кран -->
-          <g id="crane" opacity="0">
-            <g id="mast" fill="none" stroke="#E0A100" stroke-width="2.5">
-              <path d="M110 470V36M130 470V36"/>
-              <path id="mastLattice" stroke-width="1.6" d=""/>
-              <rect x="98" y="466" width="44" height="8" fill="#3B4047" stroke="none"/>
-            </g>
-            <g id="jib">
-              <path d="M40 24H650M40 36H650" fill="none" stroke="#E0A100" stroke-width="2.5"/>
-              <path id="jibLattice" fill="none" stroke="#E0A100" stroke-width="1.6" d=""/>
-              <path d="M120 36V-14M120 -14L650 24M120 -14L40 24" fill="none" stroke="#3B4047" stroke-width="1.2"/>
-              <rect x="44" y="36" width="34" height="22" fill="#3B4047"/>
-              <rect x="132" y="38" width="22" height="18" fill="#FFB800" stroke="#3B4047" stroke-width="1.5"/>
-            </g>
-            <g id="trolley">
-              <rect x="-9" y="36" width="18" height="7" fill="#3B4047"/>
-              <line id="cable" x1="0" y1="43" x2="0" y2="120" stroke="#3B4047" stroke-width="1.5"/>
-              <g id="hook" transform="translate(0 120)">
-                <path d="M0 0V6M-5 6H5M0 6V12C0 18 7 18 7 12" fill="none" stroke="#3B4047" stroke-width="2.5" stroke-linecap="round"/>
-                <g id="load">
-                  <path d="M0 14L-22 30M0 14L22 30" stroke="#3B4047" stroke-width="1.2"/>
-                  <rect x="-24" y="30" width="48" height="10" fill="#DDDAD2" stroke="#C5C1B8"/>
-                  <rect x="-24" y="40" width="48" height="10" fill="#E3E0D8" stroke="#C5C1B8"/>
-                  <rect x="-26" y="50" width="52" height="4" fill="#9C7A55"/>
-                </g>
-              </g>
-            </g>
-          </g>
-        </svg>
+        <div class="stages">
+          <figure class="stage"><img src="https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Инженер чертит план дома на бумаге" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
+          <figure class="stage"><img src="https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Рабочий вяжет арматуру для фундаментной плиты" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
+          <figure class="stage"><img src="https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Каменщик кладёт стену из блоков на раствор" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
+          <figure class="stage"><img src="https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Деревянные стропила на крыше строящегося дома" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
+          <figure class="stage"><img src="https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Дом в строительных лесах во время отделки фасада" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
+          <figure class="stage"><img src="https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Готовый дом вечером: свет в окнах, газон и дорожка" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
+        </div>
+        <p class="build__cap" aria-hidden="true"><span class="build__capn">06</span><span class="build__capt">Двор и&nbsp;ключи</span></p>
 
         <p class="build__week" aria-hidden="true">Неделя <b class="build__weeknum">20</b> из 20</p>
         <p class="build__done">
@@ -397,18 +248,7 @@
 
         <article class="proj">
           <div class="proj__art">
-            <svg viewBox="0 0 320 220" aria-hidden="true">
-              <circle class="p-sun" cx="272" cy="48" r="16"/>
-              <path class="p-ln" d="M14 196H306"/>
-              <path class="p-wall" d="M100 196V112L160 52L220 112V196Z"/>
-              <rect class="p-wall" x="220" y="136" width="74" height="60"/>
-              <path class="p-roof" d="M88 116L160 42L232 116L222 122L160 58L98 122Z"/>
-              <rect class="p-roof" x="214" y="129" width="86" height="7"/>
-              <rect class="p-glass" x="130" y="118" width="60" height="78"/>
-              <path class="p-ln" d="M160 118V196M130 156H190"/>
-              <rect class="p-glass" x="236" y="150" width="42" height="30"/>
-              <g class="p-tree"><path d="M56 196V164"/><circle cx="56" cy="152" r="18"/></g>
-            </svg>
+            <img class="proj__img" src="https://images.unsplash.com/photo-1704307163247-cde12ba3ff28?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1704307163247-cde12ba3ff28?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1704307163247-cde12ba3ff28?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Одноэтажный дом-барн, обшитый деревом, с большими окнами" loading="lazy" decoding="async">
           </div>
           <div class="proj__body">
             <h3 class="proj__name">Барн 98</h3>
@@ -425,16 +265,7 @@
 
         <article class="proj">
           <div class="proj__art">
-            <svg viewBox="0 0 320 220" aria-hidden="true">
-              <circle class="p-sun" cx="48" cy="46" r="16"/>
-              <path class="p-ln" d="M14 196H306"/>
-              <path class="p-wall" d="M80 196L160 60L240 196Z"/>
-              <path class="p-roof" d="M60 200L160 32L260 200H244L160 56L76 200Z"/>
-              <rect class="p-glass" x="122" y="138" width="76" height="58"/>
-              <path class="p-glass" d="M134 126L160 84L186 126Z"/>
-              <path class="p-ln" d="M106 132H214M160 138V196M141 138V196M179 138V196"/>
-              <g class="p-tree"><path d="M282 196V168"/><circle cx="282" cy="156" r="16"/></g>
-            </svg>
+            <img class="proj__img" src="https://images.unsplash.com/photo-1668015642046-22044ddc7247?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1668015642046-22044ddc7247?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1668015642046-22044ddc7247?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Тёмный дом-шале с треугольной крышей среди деревьев" loading="lazy" decoding="async">
           </div>
           <div class="proj__body">
             <h3 class="proj__name">Шале 146</h3>
@@ -451,19 +282,7 @@
 
         <article class="proj">
           <div class="proj__art">
-            <svg viewBox="0 0 320 220" aria-hidden="true">
-              <circle class="p-sun" cx="54" cy="40" r="16"/>
-              <path class="p-ln" d="M14 196H306"/>
-              <rect class="p-wall" x="50" y="126" width="180" height="70"/>
-              <rect class="p-wall" x="100" y="66" width="180" height="60"/>
-              <rect class="p-roof" x="96" y="60" width="188" height="7"/>
-              <rect class="p-roof" x="46" y="120" width="54" height="7"/>
-              <path class="p-ln" d="M272 126V196"/>
-              <rect class="p-glass" x="66" y="146" width="90" height="34"/>
-              <rect class="p-glass" x="176" y="146" width="30" height="50"/>
-              <rect class="p-glass" x="120" y="82" width="140" height="28"/>
-              <path class="p-ln" d="M111 146V180M190 82V110"/>
-            </svg>
+            <img class="proj__img" src="https://images.unsplash.com/photo-1756706718604-ef4af3970e33?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1756706718604-ef4af3970e33?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1756706718604-ef4af3970e33?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Двухэтажный дом-куб с плоской крышей и деревянной отделкой" loading="lazy" decoding="async">
           </div>
           <div class="proj__body">
             <h3 class="proj__name">Куб 132</h3>
@@ -480,21 +299,7 @@
 
         <article class="proj">
           <div class="proj__art">
-            <svg viewBox="0 0 320 220" aria-hidden="true">
-              <circle class="p-sun" cx="272" cy="40" r="16"/>
-              <path class="p-ln" d="M14 196H306"/>
-              <rect class="p-roof" x="166" y="30" width="12" height="26"/>
-              <rect class="p-wall" x="70" y="96" width="150" height="100"/>
-              <path class="p-roof" d="M58 98L106 48H184L232 98Z"/>
-              <rect class="p-wall" x="220" y="136" width="80" height="60"/>
-              <rect class="p-roof" x="216" y="129" width="90" height="8"/>
-              <rect class="p-glass" x="86" y="112" width="34" height="28"/>
-              <rect class="p-glass" x="170" y="112" width="34" height="28"/>
-              <rect class="p-glass" x="86" y="154" width="34" height="28"/>
-              <rect class="p-roof" x="134" y="148" width="24" height="48"/>
-              <rect class="p-glass" x="170" y="154" width="34" height="28"/>
-              <path class="p-ln" d="M234 152H286V196M234 152V196M234 163H286M234 174H286M234 185H286"/>
-            </svg>
+            <img class="proj__img" src="https://images.unsplash.com/photo-1777106322601-578dc9213ace?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1777106322601-578dc9213ace?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1777106322601-578dc9213ace?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Двухэтажный семейный дом со светлым фасадом и газоном" loading="lazy" decoding="async">
           </div>
           <div class="proj__body">
             <h3 class="proj__name">Семейный 184</h3>
@@ -511,19 +316,7 @@
 
         <article class="proj">
           <div class="proj__art">
-            <svg viewBox="0 0 320 220" aria-hidden="true">
-              <circle class="p-sun" cx="260" cy="46" r="16"/>
-              <path class="p-ln" d="M14 196H306"/>
-              <rect class="p-wall" x="60" y="124" width="140" height="72"/>
-              <path class="p-roof" d="M46 128L130 68L214 128Z"/>
-              <rect class="p-roof" x="200" y="118" width="96" height="8"/>
-              <path class="p-ln" d="M212 126V196M252 126V196M290 126V196M200 172H300"/>
-              <rect class="p-roof" x="200" y="190" width="100" height="6"/>
-              <rect class="p-glass" x="74" y="142" width="40" height="30"/>
-              <rect class="p-roof" x="126" y="138" width="26" height="58"/>
-              <rect class="p-glass" x="162" y="142" width="26" height="30"/>
-              <g class="p-tree"><path d="M28 196V172"/><circle cx="28" cy="160" r="14"/></g>
-            </svg>
+            <img class="proj__img" src="https://images.unsplash.com/photo-1706164971302-e30c0640cc3b?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1706164971302-e30c0640cc3b?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1706164971302-e30c0640cc3b?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Одноэтажный дом с освещённой верандой вечером" loading="lazy" decoding="async">
           </div>
           <div class="proj__body">
             <h3 class="proj__name">Веранда 76</h3>
@@ -540,11 +333,7 @@
 
         <article class="proj proj--own">
           <div class="proj__art">
-            <svg viewBox="0 0 320 220" aria-hidden="true">
-              <path class="p-ln p-dash" d="M70 196V110L160 50L250 110V196Z"/>
-              <path class="p-ln" d="M14 196H306"/>
-              <g class="p-pencil"><path d="M214 66L254 26L266 38L226 78L210 82Z"/><path d="M248 32L260 44"/></g>
-            </svg>
+            <img class="proj__img" src="https://images.unsplash.com/photo-1649688066830-a0cf04d1bc41?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1649688066830-a0cf04d1bc41?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1649688066830-a0cf04d1bc41?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Архитектор рисует эскиз дома на столе" loading="lazy" decoding="async">
           </div>
           <div class="proj__body">
             <h3 class="proj__name">Ваш проект</h3>
@@ -560,6 +349,13 @@
 
   <!-- ============ КАЛЬКУЛЯТОР ============ -->
   <section class="calc" id="calc">
+    <div class="floaters" aria-hidden="true">
+      <svg class="fl" viewBox="0 0 48 48" style="left:1.5%;top:6%;width:72px" data-speed="1.2"><use href="#f-bolt"/></svg>
+      <svg class="fl fl--d" viewBox="0 0 48 48" style="right:3%;top:3%;width:58px" data-speed="-0.8"><use href="#f-cross"/></svg>
+      <svg class="fl fl--d" viewBox="0 0 48 48" style="left:46%;top:1%;width:86px" data-speed="0.6"><use href="#f-brick"/></svg>
+      <svg class="fl fl--d" viewBox="0 0 48 48" style="left:1%;bottom:8%;width:92px" data-speed="1.6"><use href="#f-square"/></svg>
+      <svg class="fl" viewBox="0 0 48 48" style="right:2%;bottom:5%;width:104px" data-speed="-1.3"><use href="#f-level"/></svg>
+    </div>
     <div class="container">
       <div class="calc__head">
         <h2 class="h2">Сколько стоит ваш дом</h2>
@@ -611,51 +407,12 @@
 
         <div class="calc__result" aria-live="polite">
           <div class="calc__preview">
-            <svg id="cprev" viewBox="0 0 360 250" aria-hidden="true">
-              <defs>
-                <pattern id="mat-gas" width="24" height="12" patternUnits="userSpaceOnUse">
-                  <rect width="24" height="12" fill="#E4E1D9"/>
-                  <path d="M0 .5H24M0 6.5H24M.5 0V6.5M12.5 6.5V12" stroke="#C4BFB4" stroke-width="1"/>
-                </pattern>
-                <pattern id="mat-brick" width="16" height="8" patternUnits="userSpaceOnUse">
-                  <rect width="16" height="8" fill="#A9553A"/>
-                  <path d="M0 .5H16M0 4.5H16M.5 0V4.5M8.5 4.5V8" stroke="#DCCDBF" stroke-width="1"/>
-                </pattern>
-                <pattern id="mat-frame" width="20" height="9" patternUnits="userSpaceOnUse">
-                  <rect width="20" height="9" fill="#D2B08A"/>
-                  <path d="M0 8.5H20" stroke="#A9825A" stroke-width="1.4"/>
-                </pattern>
-                <pattern id="mat-timber" width="20" height="12" patternUnits="userSpaceOnUse">
-                  <rect width="20" height="12" fill="#B27C4C"/>
-                  <path d="M0 11H20" stroke="#7E5431" stroke-width="2"/>
-                  <path d="M0 2H20" stroke="#C99467" stroke-width="1.2"/>
-                </pattern>
-              </defs>
-              <rect x="-200" y="220" width="760" height="40" fill="#D9DED6"/>
-              <path d="M-200 220.5H560" stroke="#9AA39A" stroke-width="1"/>
-              <g id="cvExtra">
-                <g class="cv-tree"><rect x="306" y="186" width="6" height="34" fill="#6B4A32"/><circle cx="309" cy="174" r="20" fill="#5E8F50"/></g>
-                <g class="cv-fence" fill="#8A6142"><rect x="14" y="200" width="5" height="20"/><rect x="24" y="200" width="5" height="20"/><rect x="34" y="200" width="5" height="20"/><rect x="44" y="200" width="5" height="20"/><rect x="54" y="200" width="5" height="20"/><rect x="10" y="206" width="54" height="3"/></g>
-              </g>
-              <g id="cvHouse">
-                <g id="cvF2">
-                  <rect class="cv-wall" x="90" y="80" width="180" height="70" fill="url(#mat-gas)"/>
-                  <rect class="cv-win" x="108" y="98" width="36" height="30" fill="#A9C9E4" stroke="#2F343A" stroke-width="4"/>
-                  <rect class="cv-win" x="162" y="98" width="36" height="30" fill="#A9C9E4" stroke="#2F343A" stroke-width="4"/>
-                  <rect class="cv-win" x="216" y="98" width="36" height="30" fill="#A9C9E4" stroke="#2F343A" stroke-width="4"/>
-                </g>
-                <rect class="cv-wall" x="90" y="150" width="180" height="70" fill="url(#mat-gas)"/>
-                <rect x="86" y="146" width="188" height="6" fill="#9EA3A6"/>
-                <rect class="cv-win" x="108" y="168" width="36" height="30" fill="#A9C9E4" stroke="#2F343A" stroke-width="4"/>
-                <rect class="cv-win" x="216" y="168" width="36" height="30" fill="#A9C9E4" stroke="#2F343A" stroke-width="4"/>
-                <rect x="166" y="170" width="28" height="50" fill="#8A5A35" stroke="#2F343A" stroke-width="3"/>
-                <g id="cvRoof">
-                  <path d="M74 84L180 18L286 84Z" fill="#2F343A"/>
-                  <path d="M96 80L180 28L264 80Z" fill="#3B4047"/>
-                </g>
-              </g>
-              <text id="cvLabel" x="180" y="244" text-anchor="middle">газобетон D500</text>
-            </svg>
+            <img class="cv-img is-on" data-mat="gas" src="https://images.unsplash.com/photo-1684691376857-5dfb87f6bc65?auto=format&fit=crop&q=75&w=900" alt="Дом из газобетона под белой штукатуркой" loading="lazy" decoding="async">
+            <img class="cv-img" data-mat="brick" src="https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&q=75&w=900" alt="Дом из красного кирпича" loading="lazy" decoding="async">
+            <img class="cv-img" data-mat="frame" src="https://images.unsplash.com/photo-1762374974129-f9266d9c4efc?auto=format&fit=crop&q=75&w=900" alt="Каркасный дом с отделкой сайдингом" loading="lazy" decoding="async">
+            <img class="cv-img" data-mat="timber" src="https://images.unsplash.com/photo-1706047924901-28129757dde7?auto=format&fit=crop&q=75&w=900" alt="Дом из клеёного бруса" loading="lazy" decoding="async">
+            <span class="cv-label" id="cvLabel">газобетон D500</span>
+            <span class="cv-tags" aria-hidden="true"><b id="cvArea">140 м²</b><b id="cvFloors">2 этажа</b><b id="cvFinish">под чистовую</b></span>
           </div>
 
           <p class="calc__label">Примерная стоимость</p>
@@ -670,8 +427,59 @@
     </div>
   </section>
 
+  <!-- ============ ЦИФРЫ ============ -->
+  <div class="nums-wrap">
+    <section class="nums" aria-labelledby="numsTitle">
+      <h2 class="vh" id="numsTitle">«Отвес» в цифрах</h2>
+      <div class="floaters" aria-hidden="true">
+        <svg class="fl" viewBox="0 0 48 48" style="left:3%;top:42%;width:80px" data-speed="1.4"><use href="#f-screw"/></svg>
+        <svg class="fl fl--d" viewBox="0 0 48 48" style="right:4%;top:38%;width:70px" data-speed="-1.1"><use href="#f-bolt"/></svg>
+        <svg class="fl fl--d" viewBox="0 0 48 48" style="left:52%;bottom:4%;width:96px" data-speed="0.9"><use href="#f-brick"/></svg>
+      </div>
+      <div class="nums__rows" aria-hidden="true">
+        <div class="nums__row nums__row--a">
+          <span>Ровно</span><i class="nums__sep"></i><span>Тепло</span><i class="nums__sep"></i><span>В&nbsp;срок</span><i class="nums__sep"></i><span>По&nbsp;смете</span><i class="nums__sep"></i>
+          <span>Ровно</span><i class="nums__sep"></i><span>Тепло</span><i class="nums__sep"></i><span>В&nbsp;срок</span><i class="nums__sep"></i><span>По&nbsp;смете</span><i class="nums__sep"></i>
+          <span>Ровно</span><i class="nums__sep"></i><span>Тепло</span><i class="nums__sep"></i><span>В&nbsp;срок</span><i class="nums__sep"></i><span>По&nbsp;смете</span><i class="nums__sep"></i>
+        </div>
+        <div class="nums__row nums__row--b">
+          <span>Газобетон</span><i class="nums__sep"></i><span>Кирпич</span><i class="nums__sep"></i><span>Брус</span><i class="nums__sep"></i><span>Каркас</span><i class="nums__sep"></i>
+          <span>Газобетон</span><i class="nums__sep"></i><span>Кирпич</span><i class="nums__sep"></i><span>Брус</span><i class="nums__sep"></i><span>Каркас</span><i class="nums__sep"></i>
+          <span>Газобетон</span><i class="nums__sep"></i><span>Кирпич</span><i class="nums__sep"></i><span>Брус</span><i class="nums__sep"></i><span>Каркас</span><i class="nums__sep"></i>
+        </div>
+      </div>
+      <div class="container nums__grid">
+        <div class="num">
+          <p class="num__v"><b data-to="312">312</b><span>домов</span></p>
+          <i class="num__ruler" aria-hidden="true"></i>
+          <p class="num__t">сдали под&nbsp;ключ с&nbsp;2012 года</p>
+        </div>
+        <div class="num">
+          <p class="num__v"><b data-to="20">20</b><span>недель</span></p>
+          <i class="num__ruler" aria-hidden="true"></i>
+          <p class="num__t">от&nbsp;чертежа до&nbsp;новоселья</p>
+        </div>
+        <div class="num">
+          <p class="num__v"><b data-to="10">10</b><span>лет</span></p>
+          <i class="num__ruler" aria-hidden="true"></i>
+          <p class="num__t">гарантии на&nbsp;фундамент, стены и&nbsp;кровлю</p>
+        </div>
+        <div class="num">
+          <p class="num__v"><b data-to="48">48</b><span>часов</span></p>
+          <i class="num__ruler" aria-hidden="true"></i>
+          <p class="num__t">на&nbsp;выезд по&nbsp;гарантийной заявке</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
   <!-- ============ ГАРАНТИИ ============ -->
   <section class="why" id="why">
+    <div class="floaters" aria-hidden="true">
+      <svg class="fl fl--d" viewBox="0 0 48 48" style="right:3%;top:5%;width:90px" data-speed="1.3"><use href="#f-square"/></svg>
+      <svg class="fl" viewBox="0 0 48 48" style="right:22%;top:30%;width:60px" data-speed="-0.9"><use href="#f-cross"/></svg>
+      <svg class="fl fl--d" viewBox="0 0 48 48" style="left:2%;bottom:6%;width:76px" data-speed="1.1"><use href="#f-bolt"/></svg>
+    </div>
     <div class="container">
       <p class="why__statement">Мы отвечаем за&nbsp;дом деньгами, а&nbsp;не&nbsp;обещаниями. Всё, что ниже, записано в&nbsp;договоре.</p>
 
@@ -702,6 +510,11 @@
 
   <!-- ============ ЗАЯВКА ============ -->
   <section class="contact" id="contact">
+    <div class="floaters" aria-hidden="true">
+      <svg class="fl fl--d" viewBox="0 0 48 48" style="left:2%;top:4%;width:70px" data-speed="-1.2"><use href="#f-level"/></svg>
+      <svg class="fl" viewBox="0 0 48 48" style="left:34%;bottom:6%;width:84px" data-speed="1.4"><use href="#f-brick"/></svg>
+      <svg class="fl fl--d" viewBox="0 0 48 48" style="left:44%;top:10%;width:54px" data-speed="0.8"><use href="#f-screw"/></svg>
+    </div>
     <div class="container contact__grid">
       <div class="contact__text">
         <h2 class="h2">Приедем на&nbsp;участок и&nbsp;посчитаем дом</h2>
@@ -784,7 +597,7 @@
   <div class="container footer__bottom">
     <span>© 2026 «Отвес»</span>
     <button class="footer__motion" type="button" data-motion-toggle hidden></button>
-    <span>Демо-сайт: компания вымышленная, цены примерные.</span>
+    <span>Демо-сайт: компания вымышленная, цены примерные. Фото: <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a>.</span>
   </div>
 </footer>
 
@@ -793,6 +606,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 <script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
-<script src="script.js?v=2"></script>
+<script src="script.js?v=4"></script>
 </body>
 </html>

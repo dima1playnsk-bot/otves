@@ -16,7 +16,6 @@
   const G = window.gsap;
   const ST = window.ScrollTrigger;
   const motion = !!(G && ST) && !reduce;
-  const SVGNS = 'http://www.w3.org/2000/svg';
 
   const fmt = (n) => Math.round(n).toLocaleString('ru-RU');
   const plural = (n, forms) => {
@@ -25,12 +24,6 @@
     if (b > 1 && b < 5) return forms[1];
     if (b === 1) return forms[0];
     return forms[2];
-  };
-  const svgEl = (tag, attrs, parent) => {
-    const el = document.createElementNS(SVGNS, tag);
-    Object.keys(attrs).forEach((k) => el.setAttribute(k, attrs[k]));
-    if (parent) parent.appendChild(el);
-    return el;
   };
   // Готовит линии к «прорисовке»: прячет штрих, чтобы потом его «нарисовать»
   const prepDraw = (els) => els.forEach((el) => {
@@ -123,44 +116,74 @@
   });
 
   /* ---------- Первый экран ---------- */
+  // Чертёжная сетка, в центре «проявляется» фото дома и раскрывается на весь экран
   function heroIntro() {
-    const lines = $$('.bp .d');
-    const dims = $$('.bp .dm');
-    const texts = $$('.bp .tx');
     const words = $$('.hero__title .w');
-    prepDraw(lines);
-    prepDraw(dims);
-
     const tl = G.timeline({ defaults: { ease: 'power3.out' }, delay: 0.1 });
-    tl.from('.hero__grid', { opacity: 0, scale: 1.06, duration: 1.6, ease: 'power2.out' }, 0)
+    tl.fromTo('.hero__photo',
+      { clipPath: 'inset(40% 36% 40% 36%)', scale: 1.4 },
+      { clipPath: 'inset(0% 0% 0% 0%)', scale: 1.06, duration: 2, ease: 'expo.inOut' }, 0)
+      .fromTo('.hero__photo img', { filter: 'grayscale(1) brightness(1.6) contrast(.8)' },
+        { filter: 'grayscale(0) brightness(1) contrast(1)', duration: 1.6, ease: 'power2.inOut', clearProps: 'filter' }, 0.5)
+      .fromTo('.hero__grid', { opacity: 1 }, { opacity: 0.14, duration: 1.4, ease: 'power2.inOut' }, 0.7)
       .from(words, {
         y: -110, opacity: 0, rotation: () => G.utils.random(-12, 12),
         duration: 1, ease: 'back.out(2.4)', stagger: 0.09,
-      }, 0.2)
-      .from(['.hero__lead', '.hero__actions'], { y: 26, opacity: 0, duration: 0.9, stagger: 0.12 }, 0.8)
-      .to(lines, { strokeDashoffset: 0, duration: 1.3, ease: 'power2.inOut', stagger: 0.045 }, 0.3)
-      .to(dims, { strokeDashoffset: 0, duration: 0.7, ease: 'power1.inOut', stagger: 0.03 }, 1.3)
-      .from(texts, { opacity: 0, y: 6, duration: 0.5, stagger: 0.035 }, 1.55)
-      .add(countTemps, 1.7)
-      .from('.bp-glow > *', { opacity: 0, duration: 0.6, stagger: 0.08 }, 2)
-      .from('.stamp tr', { opacity: 0, x: 24, duration: 0.5, stagger: 0.07 }, 1.4)
-      .from('.stamp', { opacity: 0, duration: 0.3 }, 1.4)
-      .from('.hero__hint', { opacity: 0, y: 10, duration: 0.6 }, 2.1)
+      }, 0.9)
+      .from(['.hero__lead', '.hero__actions'], { y: 26, opacity: 0, duration: 0.9, stagger: 0.12 }, 1.4)
+      .from('.temp', { opacity: 0, y: 24, scale: 0.7, duration: 0.8, stagger: 0.2, ease: 'back.out(2)' }, 1.8)
+      .add(countTemps, 1.8)
+      .from('.stamp tr', { opacity: 0, x: 24, duration: 0.5, stagger: 0.07 }, 1.9)
+      .from('.stamp', { opacity: 0, duration: 0.3 }, 1.9)
+      .from('.hero__hint', { opacity: 0, y: 10, duration: 0.6 }, 2.3)
+      .from('.header > *', { y: -40, opacity: 0, duration: 0.8, stagger: 0.06 }, 0.6)
       .add(() => {
-        G.to('.bp-glow', { opacity: 1, duration: 2.4, ease: 'sine.inOut', repeat: -1, yoyo: true });
+        // Фото медленно «дышит», как будто камера чуть наезжает
+        G.to('.hero__photo', { scale: 1.13, duration: 14, ease: 'sine.inOut', repeat: -1, yoyo: true });
       });
 
     html.classList.remove('intro');
+  }
 
-    // Лёгкий параллакс при уходе с первого экрана
-    G.to('.hero__drawing', {
-      yPercent: 16, ease: 'none',
-      scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true },
-    });
-    G.to('.hero__text', {
-      yPercent: -12, ease: 'none',
-      scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true },
-    });
+  // Уход с первого экрана: фото уезжает медленнее страницы, текст тает
+  function heroScroll() {
+    const st = () => ({ trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true });
+    G.to('.hero__photo', { yPercent: 22, ease: 'none', scrollTrigger: st() });
+    G.to('.hero__temps', { yPercent: -40, opacity: 0, ease: 'none', scrollTrigger: st() });
+    G.to('.hero__text', { yPercent: -16, opacity: 0.1, ease: 'none', scrollTrigger: st() });
+  }
+
+  /* ---------- Заставка ---------- */
+  function loader(reveal) {
+    const el = $('.loader');
+    if (!el || !html.classList.contains('loading')) { reveal(); return; }
+    if (lenis) lenis.stop();
+    const num = $('.loader__num', el);
+    const plumb = $('.loader__plumb', el);
+    const drop = plumb.offsetHeight + 40;
+    const o = { v: 0 };
+    const end = () => {
+      html.classList.remove('loading');
+      if (lenis) lenis.start();
+      try { sessionStorage.setItem('otves-seen', '1'); } catch (e) { /* нет хранилища — покажем заставку снова */ }
+    };
+    G.timeline({ onComplete: end })
+      .fromTo('.loader__line', { scaleY: 0 }, { scaleY: 1, duration: 0.85, ease: 'power3.in' }, 0)
+      .fromTo('.loader__bob', { y: -drop }, { y: 0, duration: 0.85, ease: 'power3.in' }, 0)
+      .to(plumb, {
+        keyframes: [
+          { rotation: 11, duration: 0.16, ease: 'power2.out' },
+          { rotation: 0, duration: 1.1, ease: 'elastic.out(1.1, 0.3)' },
+        ],
+      }, 0.84)
+      .fromTo('.loader__level', { scaleX: 0 }, { scaleX: 1, duration: 0.7, ease: 'power3.inOut' }, 0.8)
+      .fromTo('.loader__info', { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.5 }, 0.15)
+      .to(o, { v: 100, duration: 1.35, ease: 'power2.inOut', onUpdate: () => { num.textContent = Math.round(o.v); } }, 0.1)
+      .to(['.loader__info', '.loader__level'], { opacity: 0, duration: 0.3 }, 1.6)
+      .to(plumb, { y: -drop - 80, duration: 0.5, ease: 'power3.in' }, 1.6)
+      .to('.loader__half--t', { yPercent: -100, duration: 1, ease: 'expo.inOut' }, 1.8)
+      .to('.loader__half--b', { yPercent: 100, duration: 1, ease: 'expo.inOut' }, 1.8)
+      .add(reveal, 1.95);
   }
 
   function countTemps() {
@@ -175,28 +198,6 @@
         },
       });
     });
-  }
-
-  /* Перекрестье как в чертёжной программе */
-  function crosshair() {
-    const hero = $('.hero');
-    const cross = $('.cross');
-    const coords = $('.cross__coords');
-    let raf = 0, px = 0, py = 0;
-    hero.addEventListener('pointermove', (e) => {
-      px = e.clientX; py = e.clientY;
-      if (raf) return;
-      raf = requestAnimationFrame(() => {
-        raf = 0;
-        const r = hero.getBoundingClientRect();
-        const x = px - r.left, y = py - r.top;
-        cross.style.setProperty('--cx', x + 'px');
-        cross.style.setProperty('--cy', y + 'px');
-        coords.textContent = `X ${fmt((x / r.width) * 24000)}   Y ${fmt((1 - y / r.height) * 12000)}`;
-        cross.classList.add('is-on');
-      });
-    });
-    hero.addEventListener('pointerleave', () => cross.classList.remove('is-on'));
   }
 
   /* Снег на первом экране */
@@ -277,245 +278,86 @@
     });
   }
 
-  /* ---------- Сцена стройки: генерация блоков и крана ---------- */
-  function buildSceneMarkup() {
-    const blocks = $('#blocks');
-    const X0 = 240, X1 = 560, BW = 40, BH = 20;
-    // ряды кладки снизу вверх (между этажами — монолитный пояс на y=355)
-    const rows = [435, 415, 395, 375, 335, 315, 295, 275, 255];
-    const holes = [
-      [268, 332, 375, 435], [380, 420, 375, 455], [468, 532, 375, 435],
-      [268, 332, 275, 335], [368, 432, 275, 335], [468, 532, 275, 335],
-    ];
-    const shades = ['#E3E0D8', '#DCD9D1', '#E7E4DC', '#D8D5CC', '#E0DDD4'];
-    rows.forEach((y, r) => {
-      const g = svgEl('g', { class: 'brow' }, blocks);
-      const off = r % 2 ? BW / 2 : 0;
-      for (let x = X0 - off; x < X1; x += BW) {
-        let segs = [[Math.max(x, X0), Math.min(x + BW, X1)]];
-        holes.forEach(([hx1, hx2, hy1, hy2]) => {
-          if (y >= hy1 && y + BH <= hy2) {
-            segs = segs.flatMap(([a, b]) => {
-              if (b <= hx1 || a >= hx2) return [[a, b]];
-              const out = [];
-              if (a < hx1) out.push([a, hx1]);
-              if (b > hx2) out.push([hx2, b]);
-              return out;
-            });
-          }
-        });
-        segs.forEach(([a, b]) => {
-          if (b - a < 3) return;
-          svgEl('rect', {
-            x: a, y, width: b - a, height: BH,
-            fill: shades[(Math.random() * shades.length) | 0],
-            stroke: '#C2BEB4', 'stroke-width': 1,
-          }, g);
-        });
-      }
-    });
-
-    // Решётка башни крана и стрелы
-    let mast = '';
-    for (let y = 470, k = 0; y >= 40; y -= 20, k++) mast += (k ? 'L' : 'M') + (k % 2 ? 130 : 110) + ' ' + y;
-    $('#mastLattice').setAttribute('d', mast);
-    let jib = '';
-    for (let x = 130, k = 0; x <= 650; x += 13, k++) jib += (k ? 'L' : 'M') + x + ' ' + (k % 2 ? 24 : 36);
-    for (let x = 40, k = 0; x <= 110; x += 10, k++) jib += (k ? 'L' : 'M') + x + ' ' + (k % 2 ? 24 : 36);
-    $('#jibLattice').setAttribute('d', jib);
-
-    // На телефоне чуть приближаем сцену
-    const svg = $('#scene');
-    const fitView = () => svg.setAttribute('viewBox', window.innerWidth < 700 ? '90 0 640 560' : '0 0 800 560');
-    fitView();
-    window.addEventListener('resize', fitView);
-  }
-
-  /* ---------- Сцена стройки: анимация по прокрутке ---------- */
+  /* ---------- Стройка по прокрутке: фото этапов сменяют друг друга ---------- */
   function buildSceneTimeline() {
-    const scene = $('.build__scene');
-    const svg = $('#scene');
-    const qa = (s) => Array.from(svg.querySelectorAll(s));
+    const stages = $$('.stage');
+    const imgs = stages.map((s) => $('img', s));
+    const shades = stages.map((s) => $('.stage__shade', s));
+    const cap = $('.build__cap');
+    const capN = $('.build__capn');
+    const capT = $('.build__capt');
+    const names = $$('.step__name').map((e) => e.textContent);
 
-    const ghostLines = qa('#ghost > *');
-    const dimLines = qa('#dims .sd');
-    const rebar = qa('#rebar path');
-    const rafters = qa('#rafters path');
-    const rowGroups = qa('#blocks .brow');
-    const allBlocks = qa('#blocks rect');
-    const wins = qa('#windows .win');
-    const trolley = $('#trolley');
-    const cable = $('#cable');
-    const hook = $('#hook');
-    prepDraw(ghostLines);
-    prepDraw(dimLines);
-    prepDraw(rebar);
-    prepDraw(rafters);
+    // Каждый этап появляется по-своему: снизу вверх (растёт фундамент), слева (кладка),
+    // сверху (опускается кровля), кругом из центра (фасад), снова снизу (готовый дом)
+    const reveal = [
+      null,
+      ['inset(100% 0% 0% 0%)', 'inset(0% 0% 0% 0%)'],
+      ['inset(0% 100% 0% 0%)', 'inset(0% 0% 0% 0%)'],
+      ['inset(0% 0% 100% 0%)', 'inset(0% 0% 0% 0%)'],
+      ['circle(0% at 50% 55%)', 'circle(80% at 50% 55%)'],
+      ['inset(100% 0% 0% 0%)', 'inset(0% 0% 0% 0%)'],
+    ];
 
-    // ---- исходное состояние: чистый лист-чертёж ----
-    G.set(scene, { '--sky-a': '#1D4596', '--sky-b': '#1D4596' });
-    G.set('.build__grid', { opacity: 1 });
-    G.set(['#ghost', '#dims', '#groundline'], { opacity: 1 });
-    G.set('#dims .stx', { opacity: 0 });
-    G.set('#stars', { opacity: 0 });
-    G.set('#sun', { opacity: 0, y: 220 });
-    G.set('#soil', { scaleY: 0, transformOrigin: '50% 0%' });
-    G.set('#grass', { scaleX: 0, transformOrigin: '50% 50%' });
-    G.set('#path', { scaleY: 0, opacity: 0, transformOrigin: '50% 0%' });
-    G.set('#fenceL', { scaleX: 0, transformOrigin: '100% 50%' });
-    G.set('#fenceR', { scaleX: 0, transformOrigin: '0% 50%' });
-    G.set(['#tree', '#tree2'], { scale: 0, transformOrigin: '50% 100%' });
-    G.set('#bushes circle', { scale: 0, transformOrigin: '50% 100%' });
-    G.set(['#lamp', '#lampGlow'], { opacity: 0 });
-    G.set('#crane', { opacity: 1, x: 0 });
-    G.set('#mast', { scaleY: 0, transformOrigin: '50% 100%' });
-    G.set('#jib', { scaleX: 0, svgOrigin: '120 30' });
-    G.set(['#trolley', '#load'], { opacity: 0 });
-    G.set('#slab', { scaleY: 0, transformOrigin: '50% 100%' });
-    G.set(['#plinth', '#porch'], { opacity: 0 });
-    G.set(allBlocks, { opacity: 0, y: -34 });
-    G.set(['#band1', '#band2'], { scaleX: 0, transformOrigin: '0% 50%' });
-    G.set('#plaster', { opacity: 0 });
-    G.set('#chimney', { scaleY: 0, transformOrigin: '50% 100%' });
-    G.set('#gable', { scaleY: 0, transformOrigin: '50% 100%' });
-    G.set('#roofband', { opacity: 0, y: -45 });
-    G.set(wins, { scale: 0, transformOrigin: '50% 50%' });
-    G.set('#door', { scale: 0, transformOrigin: '50% 100%' });
-    G.set('#canopy', { scaleX: 0, transformOrigin: '50% 50%' });
-    G.set(['#dusk', '#light', '#smoke'], { opacity: 0 });
+    G.set(stages.slice(1), { clipPath: (i) => reveal[i + 1][0] });
+    G.set(imgs, { scale: 1.25, transformOrigin: '50% 60%' });
+    G.set(shades, { opacity: 0 });
+    G.set('.build__grid', { opacity: 0.55 });
     G.set('.build__done', { opacity: 0, scale: 0.6, y: 20 });
 
-    // Крюк крана: тележка ездит по стреле, трос меняет длину
-    const rig = { x: 400, y: 120 };
-    const applyRig = () => {
-      trolley.setAttribute('transform', `translate(${rig.x.toFixed(1)} 0)`);
-      cable.setAttribute('y2', (rig.y + 1).toFixed(1));
-      hook.setAttribute('transform', `translate(0 ${rig.y.toFixed(1)})`);
-    };
-    applyRig();
-
     const tl = G.timeline({ defaults: { ease: 'none' } });
-    const rigTo = (x, y, at, dur = 0.2) => tl.to(rig, { x, y, duration: dur, ease: 'power1.inOut', onUpdate: applyRig }, at);
-
-    // 1. Проект: чертёж рисуется
-    tl.to(ghostLines, { strokeDashoffset: 0, duration: 0.55, stagger: 0.03, ease: 'power1.inOut' }, 0.05)
-      .to(dimLines, { strokeDashoffset: 0, duration: 0.3, stagger: 0.03 }, 0.45)
-      .to('#dims .stx', { opacity: 1, duration: 0.2 }, 0.7)
-      .to({}, { duration: 0.1 }, 0.9);
-
-    // У свойств, которые меняются несколько раз, задаём начало явно (fromTo),
-    // чтобы при прокрутке назад всё возвращалось точно в исходный вид
     const ft = (target, from, to, at) => tl.fromTo(target, from, { ...to, immediateRender: false }, at);
 
-    // 2. Фундамент: светает, приезжает кран, заливаем плиту
-    ft(scene, { '--sky-a': '#1D4596', '--sky-b': '#1D4596' }, { '--sky-a': '#8FBCE3', '--sky-b': '#E3EEF4', duration: 0.5 }, 1);
-    ft('.build__grid', { opacity: 1 }, { opacity: 0, duration: 0.5 }, 1);
-    ft('#ghost', { stroke: '#FFFFFF', opacity: 1 }, { stroke: '#2B57B0', opacity: 0.5, duration: 0.4 }, 1);
-    ft('#dims', { stroke: '#FFFFFF' }, { stroke: '#2B57B0', duration: 0.4 }, 1);
-    ft('#dims .stx', { fill: '#FFFFFF' }, { fill: '#2B57B0', duration: 0.4 }, 1);
-    ft('#sun', { opacity: 0, y: 220 }, { opacity: 1, y: 0, duration: 0.6, ease: 'power1.out' }, 1.1);
-    tl.to('#groundline', { opacity: 0, duration: 0.3 }, 1.1)
-      .to('#soil', { scaleY: 1, duration: 0.3 }, 1.05)
-      .to('#mast', { scaleY: 1, duration: 0.35, ease: 'power2.out' }, 1.1)
-      .to('#jib', { scaleX: 1, duration: 0.3, ease: 'power2.out' }, 1.4)
-      .to('#trolley', { opacity: 1, duration: 0.08 }, 1.62)
-      .to(rebar, { strokeDashoffset: 0, duration: 0.22, stagger: 0.03 }, 1.45)
-      .to('#slab', { scaleY: 1, duration: 0.28, ease: 'power1.inOut' }, 1.72);
-    rigTo(400, 250, 1.68, 0.25);
+    // Первый кадр — чертёж; сетка «синьки» лежит поверх и тает к фундаменту
+    ft(imgs[0], { scale: 1.25 }, { scale: 1, duration: 1.1 }, 0);
+    ft('.build__grid', { opacity: 0.55 }, { opacity: 0, duration: 0.4 }, 0.6);
 
-    // 3. Стены: ряд за рядом, между этажами — монолитный пояс
-    tl.to('#load', { opacity: 1, duration: 0.04 }, 1.96);
-    rowGroups.forEach((g, i) => {
-      const at = 2 + i * 0.088 + (i >= 4 ? 0.06 : 0);
-      tl.to(g.children, { opacity: 1, y: 0, duration: 0.1, stagger: 0.008, ease: 'power2.out' }, at);
-    });
-    tl.to('#band1', { scaleX: 1, duration: 0.08, ease: 'power2.out' }, 2.36)
-      .to('#band2', { scaleX: 1, duration: 0.08, ease: 'power2.out' }, 2.86);
-    rigTo(300, 320, 2.0, 0.18);
-    rigTo(520, 290, 2.24, 0.2);
-    rigTo(320, 220, 2.5, 0.2);
-    rigTo(480, 170, 2.74, 0.18);
-    tl.to('#load', { opacity: 0, duration: 0.04 }, 2.95);
+    for (let i = 1; i < stages.length; i++) {
+      const at = i - 0.3;
+      ft(stages[i], { clipPath: reveal[i][0] }, { clipPath: reveal[i][1], duration: 0.45, ease: 'power2.inOut' }, at);
+      ft(shades[i - 1], { opacity: 0 }, { opacity: 0.65, duration: 0.45 }, at);
+      // Пока этап на экране, камера медленно наезжает
+      ft(imgs[i], { scale: 1.25 }, { scale: 1, duration: i === stages.length - 1 ? 0.95 : 1.35 }, at);
+    }
 
-    // 4. Кровля: стропила, кран опускает крышу, труба
-    tl.to(rafters, { strokeDashoffset: 0, duration: 0.3, stagger: 0.04, ease: 'power1.inOut' }, 3.0);
-    rigTo(400, 55, 3.0, 0.28);
-    tl.to('#roofband', { opacity: 1, duration: 0.06 }, 3.3)
-      .to('#roofband', { y: 0, duration: 0.35, ease: 'power1.inOut' }, 3.4)
-      .to('#chimney', { scaleY: 1, duration: 0.12, ease: 'back.out(2)' }, 3.78);
-    rigTo(400, 100, 3.4, 0.35);
-    rigTo(400, 70, 3.8, 0.15);
+    ft('.build__done', { opacity: 0, scale: 0.6, y: 20 }, { opacity: 1, scale: 1, y: 0, duration: 0.2, ease: 'back.out(2)' }, 5.7);
+    tl.to({}, { duration: 0.05 }, 5.95);
 
-    // 5. Окна и фасад
-    tl.to('#plaster', { opacity: 1, duration: 0.25 }, 4.0)
-      .to('#gable', { scaleY: 1, duration: 0.25, ease: 'power2.out' }, 4.05)
-      .to('#plinth', { opacity: 1, duration: 0.15 }, 4.1)
-      .to(wins, { scale: 1, duration: 0.15, stagger: 0.05, ease: 'back.out(2.2)' }, 4.25)
-      .to('#door', { scale: 1, duration: 0.12, ease: 'back.out(2)' }, 4.5)
-      .to('#canopy', { scaleX: 1, duration: 0.1 }, 4.6)
-      .to('#porch', { opacity: 1, duration: 0.1 }, 4.62);
-    ft('#ghost', { opacity: 0.5 }, { opacity: 0, duration: 0.25 }, 4.6);
-    ft('#dims', { opacity: 1 }, { opacity: 0, duration: 0.25 }, 4.6);
-    rigTo(620, 90, 4.2, 0.25);
-
-    // 6. Двор и ключи: кран уезжает, вечереет, зажигается свет
-    ft('#crane', { x: 0, opacity: 1 }, { x: -460, duration: 0.35, ease: 'power1.in' }, 5.0);
-    ft('#crane', { opacity: 1 }, { opacity: 0, duration: 0.08 }, 5.28);
-    ft(scene, { '--sky-a': '#8FBCE3', '--sky-b': '#E3EEF4' }, { '--sky-a': '#1E2A55', '--sky-b': '#E9905A', duration: 0.35 }, 5.45);
-    ft('#sun', { y: 0, fill: '#FFD45C' }, { y: 330, fill: '#FF7A3D', duration: 0.35 }, 5.45);
-    tl.to('#grass', { scaleX: 1, duration: 0.2 }, 5.08)
-      .to('#path', { opacity: 1, scaleY: 1, duration: 0.15 }, 5.18)
-      .to('#bushes circle', { scale: 1, stagger: 0.03, duration: 0.12, ease: 'back.out(2.5)' }, 5.24)
-      .to('#tree', { scale: 1, duration: 0.25, ease: 'back.out(1.7)' }, 5.28)
-      .to('#tree2', { scale: 1, duration: 0.2, ease: 'back.out(1.7)' }, 5.36)
-      .to(['#fenceL', '#fenceR'], { scaleX: 1, duration: 0.2 }, 5.32)
-      .to('#lamp', { opacity: 1, duration: 0.1 }, 5.4)
-      .to('#dusk', { opacity: 0.2, duration: 0.3 }, 5.5)
-      .to('#stars', { opacity: 1, duration: 0.15 }, 5.65)
-      .to('#light', { opacity: 1, duration: 0.15 }, 5.6)
-      .to('#lampGlow', { opacity: 1, duration: 0.15 }, 5.7)
-      .to({}, { duration: 0.05 }, 5.95);
-    ft('.build__done', { opacity: 0, scale: 0.6, y: 20 }, { opacity: 1, scale: 1, y: 0, duration: 0.2, ease: 'back.out(2)' }, 5.75);
-
-    // Дым из трубы — бесконечный, включается в конце
-    const smokeTl = G.timeline({ repeat: -1, paused: true });
-    qa('#smoke circle').forEach((c, i) => {
-      smokeTl.fromTo(c,
-        { x: 0, y: 0, scale: 0.5, opacity: 0.8, transformOrigin: '50% 50%' },
-        { x: 16 + i * 4, y: -64, scale: 1.9, opacity: 0, duration: 2.4, ease: 'power1.out' },
-        i * 0.8);
-    });
-
-    // Связь с колонкой этапов и счётчиком недель
-    const stages = [[0, 2], [2, 5], [5, 11], [11, 14], [14, 18], [18, 20]];
+    // Связь с колонкой этапов, подписью и счётчиком недель
+    const weeks = [[0, 2], [2, 5], [5, 11], [11, 14], [14, 18], [18, 20]];
     const steps = $$('.step');
     const pin = $('.build__pin');
     const weekEl = $('.build__weeknum');
     let active = -1;
-    let smokeOn = false;
     const sync = () => {
       const t = tl.time();
       const i = Math.min(5, Math.floor(t));
       const f = Math.min(1, t - i);
-      const [a, b] = stages[i];
+      const [a, b] = weeks[i];
       weekEl.textContent = Math.max(1, Math.min(20, Math.ceil(a + f * (b - a))));
-      pin.style.setProperty('--p', (t / 6).toFixed(4));
+      pin.style.setProperty('--p', Math.min(1, t / 6).toFixed(4));
       if (i !== active) {
         active = i;
         steps.forEach((s, k) => {
           s.classList.toggle('is-active', k === i);
           s.classList.toggle('is-done', k < i);
         });
+        capN.textContent = String(i + 1).padStart(2, '0');
+        capT.textContent = names[i];
+        G.fromTo(cap, { yPercent: 60, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.5, ease: 'power3.out', overwrite: true });
       }
-      const on = t > 5.55;
-      if (on !== smokeOn) {
-        smokeOn = on;
-        G.to('#smoke', { opacity: on ? 0.7 : 0, duration: 0.4, overwrite: true });
-        if (on) smokeTl.play(); else smokeTl.pause();
-      }
-      applyRig();
     };
     tl.eventCallback('onUpdate', sync);
+
+    // Панель с этапами въезжает сбоку, пока секция поднимается
+    G.from('.build__side', {
+      xPercent: 45, ease: 'none',
+      scrollTrigger: { trigger: '.build', start: 'top bottom', end: 'top top', scrub: true },
+    });
+    G.from('.steps .step', {
+      x: 60, opacity: 0, stagger: 0.08, duration: 0.8, ease: 'power3.out',
+      scrollTrigger: { trigger: '.build', start: 'top 40%', once: true },
+    });
 
     const st = ST.create({
       trigger: '.build',
@@ -558,11 +400,25 @@
 
     if (!motion) { native(); return; }
 
+    // Карточки выезжают снизу веером
+    G.from(cards, {
+      y: 140, opacity: 0, rotation: (i) => (i % 2 ? 4 : -4), duration: 1.1, stagger: 0.08, ease: 'power3.out',
+      scrollTrigger: { trigger: vp, start: 'top 88%', once: true },
+    });
+
     const mm = G.matchMedia();
     mm.add('(min-width: 900px)', () => {
       sec.classList.add('is-h');
       const dist = () => Math.max(0, track.scrollWidth - vp.clientWidth);
       const tween = G.to(track, { x: () => -dist(), ease: 'none' });
+      // Лента «гнётся» от скорости прокрутки
+      const skewTo = G.quickTo(track, 'skewX', { duration: 0.6, ease: 'power3' });
+      let skewT = 0;
+      const bend = (v) => {
+        skewTo(G.utils.clamp(-12, 12, v / -220));
+        clearTimeout(skewT);
+        skewT = setTimeout(() => skewTo(0), 110);
+      };
       // Карточка «строится», когда она заметно видна на экране
       const checkCards = () => {
         const vw = window.innerWidth, vh = window.innerHeight;
@@ -575,9 +431,16 @@
       ST.create({
         trigger: sec, start: 'top top', end: () => '+=' + dist(),
         pin: true, scrub: 0.7, animation: tween, invalidateOnRefresh: true,
-        onUpdate: (self) => G.set(bar, { scaleX: self.progress }),
+        onUpdate: (self) => { G.set(bar, { scaleX: self.progress }); bend(self.getVelocity()); },
       });
       tween.eventCallback('onUpdate', checkCards);
+      // Фото внутри карточки едет медленнее самой карточки — параллакс
+      cards.forEach((c) => {
+        G.fromTo($('.proj__img', c), { xPercent: 8 }, {
+          xPercent: -8, ease: 'none',
+          scrollTrigger: { trigger: c, containerAnimation: tween, start: 'left right', end: 'right left', scrub: true },
+        });
+      });
       ST.create({ trigger: sec, start: 'top bottom', end: 'bottom top', onUpdate: checkCards, onLeave: checkCards, onLeaveBack: checkCards });
       checkCards();
       return () => {
@@ -614,12 +477,10 @@
     const sqmEl = $('#sqm');
     const hint = $('#finishHint');
     const label = $('#cvLabel');
-    const cvWalls = $$('#cprev .cv-wall');
-    const cvWins = $$('#cprev .cv-win');
-    const house = $('#cvHouse');
-    const f2 = $('#cvF2');
-    const roof = $('#cvRoof');
-    const extra = $('#cvExtra');
+    const cvImgs = $$('.cv-img');
+    const cvArea = $('#cvArea');
+    const cvFloors = $('#cvFloors');
+    const cvFinish = $('#cvFinish');
 
     // Цены условные (₽ за м², тёплый контур) — поправить под реальные
     const RATE = { gas: 46000, brick: 58000, frame: 36000, timber: 41000 };
@@ -634,8 +495,8 @@
     };
 
     const shown = { v: 0 };
-    let prevMat = '';
     let first = true;
+    let lastPrice = 0;
 
     const update = () => {
       const a = Number(area.value);
@@ -654,35 +515,22 @@
       termEl.textContent = months + ' ' + plural(months, ['месяц', 'месяца', 'месяцев']);
       sqmEl.textContent = fmt(price / a) + ' ₽';
       hint.textContent = FIN_TEXT[fin];
+      // Фото дома из выбранного материала плавно сменяет предыдущее
       label.textContent = MAT[mat];
-      cvWalls.forEach((w) => w.setAttribute('fill', `url(#mat-${mat})`));
+      cvImgs.forEach((im) => im.classList.toggle('is-on', im.dataset.mat === mat));
+      cvArea.textContent = a + ' м²';
+      cvFloors.textContent = floors === 1 ? '1 этаж' : '2 этажа';
+      cvFinish.textContent = FIN_SHORT[fin];
 
-      const scale = 0.74 + ((a - 60) / 240) * 0.34;
-      const winFill = fin === 'shell' ? '#5E6A75' : fin === 'prefinish' ? '#A9C9E4' : '#FFCB6B';
-
-      if (motion) {
-        const d = first ? 0 : 1;
-        if (first) { shown.v = price; priceEl.textContent = fmt(price); }
-        else {
-          G.to(shown, { v: price, duration: 0.9, ease: 'power3.out', overwrite: true, onUpdate: () => { priceEl.textContent = fmt(shown.v); } });
-        }
-        G.to(house, { scale, svgOrigin: '180 220', duration: 0.7 * d, ease: 'back.out(1.5)', overwrite: 'auto' });
-        G.to(f2, { scaleY: floors === 2 ? 1 : 0, svgOrigin: '180 150', duration: 0.6 * d, ease: 'back.out(1.6)', overwrite: 'auto' });
-        G.to(roof, { y: floors === 2 ? 0 : 70, duration: 0.6 * d, ease: 'back.out(1.6)', overwrite: 'auto' });
-        G.to(cvWins, { fill: winFill, duration: 0.4 * d, stagger: 0.04 * d, overwrite: 'auto' });
-        G.to(extra, { opacity: fin === 'turnkey' ? 1 : 0, y: fin === 'turnkey' ? 0 : 12, duration: 0.5 * d, overwrite: 'auto' });
-        if (!first && prevMat !== mat) G.fromTo(cvWalls, { opacity: 0.2 }, { opacity: 1, duration: 0.5 });
+      if (motion && !first) {
+        G.to(shown, { v: price, duration: 0.9, ease: 'power3.out', overwrite: true, onUpdate: () => { priceEl.textContent = fmt(shown.v); } });
       } else {
+        shown.v = price;
         priceEl.textContent = fmt(price);
-        house.setAttribute('transform', `translate(180 220) scale(${scale}) translate(-180 -220)`);
-        f2.style.display = floors === 2 ? '' : 'none';
-        roof.setAttribute('transform', floors === 2 ? 'translate(0 0)' : 'translate(0 70)');
-        cvWins.forEach((w) => w.setAttribute('fill', winFill));
-        extra.style.opacity = fin === 'turnkey' ? '1' : '0';
       }
 
-      prevMat = mat;
       first = false;
+      lastPrice = price;
       calcSummary = `Расчёт на сайте: ${a} м², ${floors === 1 ? '1 этаж' : '2 этажа'}, ${MAT_SHORT[mat]}, ${FIN_SHORT[fin]} — около ${fmt(price)} ₽`;
     };
 
@@ -707,6 +555,14 @@
     });
 
     $('#calcCta').addEventListener('click', () => setMessage(calcSummary));
+
+    // Цена «набегает» с нуля, когда калькулятор появляется на экране
+    return () => {
+      G.fromTo(shown, { v: 0 }, {
+        v: lastPrice, duration: 1.8, ease: 'power3.out', overwrite: true,
+        onUpdate: () => { priceEl.textContent = fmt(shown.v); },
+      });
+    };
   }
 
   /* ---------- Подстановка текста в заявку ---------- */
@@ -743,10 +599,15 @@
       scrollTrigger: { trigger: statement, start: 'top 82%', end: 'bottom 45%', scrub: true },
     });
 
-    G.from('.why__item', {
-      y: 50, opacity: 0, duration: 0.9, stagger: 0.12, ease: 'power3.out',
-      scrollTrigger: { trigger: '.why__list', start: 'top 85%', once: true },
-    });
+    // Карточки гарантий «прорезаются» слева направо
+    G.fromTo('.why__item',
+      { y: 60, opacity: 0, clipPath: 'inset(0% 100% 0% 0%)' },
+      {
+        y: 0, opacity: 1, clipPath: 'inset(0% 0% 0% 0%)', duration: 1.1, stagger: 0.14, ease: 'power3.out',
+        clearProps: 'clipPath',
+        scrollTrigger: { trigger: '.why__list', start: 'top 85%', once: true },
+      });
+    velSkew('.why__item', '.why', 'skewY');
     $$('.why__item').forEach((item, i) => {
       const paths = $$('.ic', item);
       prepDraw(paths);
@@ -849,6 +710,229 @@
       yPercent: 105, stagger: 0.07, ease: 'power3.out',
       scrollTrigger: { trigger: '.footer__word', start: 'top bottom', end: 'bottom bottom', scrub: 1 },
     });
+    // Буква сплющивается, если навести на неё
+    $$('.footer__word span').forEach((s) => {
+      s.addEventListener('pointerenter', () => {
+        G.fromTo(s, { scaleY: 1, scaleX: 1 }, {
+          scaleY: 0.72, scaleX: 1.12, transformOrigin: '50% 100%', duration: 0.22, ease: 'power2.out',
+          yoyo: true, repeat: 1, overwrite: 'auto',
+        });
+      });
+    });
+  }
+
+  /* ---------- Общие помощники ---------- */
+  // Наклон элементов от скорости прокрутки (быстро листаешь — сильнее гнутся)
+  function velSkew(targets, trigger, prop = 'skewY', k = -280, max = 7) {
+    const tos = G.utils.toArray(targets).map((t) => G.quickTo(t, prop, { duration: 0.5, ease: 'power3' }));
+    let tm = 0;
+    ST.create({
+      trigger, start: 'top bottom', end: 'bottom top',
+      onUpdate: (self) => {
+        const v = G.utils.clamp(-max, max, self.getVelocity() / k);
+        tos.forEach((f) => f(v));
+        clearTimeout(tm);
+        tm = setTimeout(() => tos.forEach((f) => f(0)), 100);
+      },
+    });
+  }
+
+  // Разбивает заголовок на буквы. Слова не переносятся посередине,
+  // а скринридер читает заголовок целиком через aria-label
+  function splitChars(el) {
+    const text = el.textContent.replace(/[ \n\t\r]+/g, ' ').trim();
+    el.setAttribute('aria-label', text.replace(/ /g, ' '));
+    el.textContent = '';
+    const chars = [];
+    text.split(' ').forEach((word, i, arr) => {
+      const w = document.createElement('span');
+      w.className = 'sw';
+      w.setAttribute('aria-hidden', 'true');
+      Array.from(word).forEach((ch) => {
+        const c = document.createElement('span');
+        c.className = 'sc';
+        c.textContent = ch;
+        w.appendChild(c);
+        chars.push(c);
+      });
+      el.appendChild(w);
+      if (i < arr.length - 1) el.appendChild(document.createTextNode(' '));
+    });
+    return chars;
+  }
+
+  function splitWords(el) {
+    const text = el.textContent.replace(/[ \n\t\r]+/g, ' ').trim();
+    el.textContent = '';
+    return text.split(' ').map((word, i, arr) => {
+      const s = document.createElement('span');
+      s.className = 'spw';
+      s.textContent = word;
+      el.appendChild(s);
+      if (i < arr.length - 1) el.appendChild(document.createTextNode(' '));
+      return s;
+    });
+  }
+
+  /* ---------- Заголовки: буквы выпрыгивают из-под строки ---------- */
+  function splitHeadings() {
+    $$('.build__title, .projects .h2, .calc .h2, .contact .h2').forEach((h) => {
+      G.from(splitChars(h), {
+        yPercent: 120, rotation: 12, transformOrigin: '0% 100%',
+        duration: 1, ease: 'power4.out', stagger: 0.022,
+        scrollTrigger: { trigger: h, start: 'top 88%', toggleActions: 'play none none reverse' },
+      });
+    });
+    $$('.projects__head p, .calc__head p, .contact__text > p').forEach((p) => {
+      G.from(splitWords(p), {
+        y: 16, opacity: 0, filter: 'blur(6px)', duration: 0.7, ease: 'power2.out', stagger: 0.018,
+        clearProps: 'filter',
+        scrollTrigger: { trigger: p, start: 'top 90%', once: true },
+      });
+    });
+  }
+
+  /* ---------- Калькулятор: секция раскрывается, цена набегает ---------- */
+  function calcFx(countIn) {
+    G.fromTo('.calc',
+      { clipPath: 'inset(7% 4% 0% 4% round 48px)' },
+      {
+        clipPath: 'inset(0% 0% 0% 0% round 0px)', ease: 'none',
+        scrollTrigger: { trigger: '.calc', start: 'top bottom', end: 'top 15%', scrub: true },
+      });
+    const st = () => ({ trigger: '.calc__grid', start: 'top 80%', once: true });
+    G.from('.calc__form > *', { x: -70, opacity: 0, duration: 1, stagger: 0.12, ease: 'power3.out', scrollTrigger: st() });
+    G.from('.calc__result', { y: 90, rotation: 2.5, opacity: 0, duration: 1.2, ease: 'power3.out', scrollTrigger: st(), onStart: countIn });
+    G.fromTo('.calc__preview', { clipPath: 'inset(0% 0% 100% 0%)' }, {
+      clipPath: 'inset(0% 0% 0% 0%)', duration: 1.4, ease: 'expo.inOut', delay: 0.2, clearProps: 'clipPath', scrollTrigger: st(),
+    });
+  }
+
+  /* ---------- Цифры: бегущие строки, счётчики, рулетки ---------- */
+  function nums() {
+    G.fromTo('.nums',
+      { clipPath: 'inset(8% 4% 0% 4% round 56px)' },
+      {
+        clipPath: 'inset(0% 0% 0% 0% round 0px)', ease: 'none',
+        scrollTrigger: { trigger: '.nums', start: 'top bottom', end: 'top 20%', scrub: true },
+      });
+    const rowSt = () => ({ trigger: '.nums', start: 'top bottom', end: 'bottom top', scrub: 0.5 });
+    G.fromTo('.nums__row--a', { xPercent: 0 }, { xPercent: -36, ease: 'none', scrollTrigger: rowSt() });
+    G.fromTo('.nums__row--b', { xPercent: -36 }, { xPercent: 0, ease: 'none', scrollTrigger: rowSt() });
+    velSkew('.nums__row', '.nums', 'skewX', -200, 14);
+
+    $$('.num').forEach((n, i) => {
+      const b = $('b', n);
+      const to = Number(b.dataset.to);
+      const o = { v: 0 };
+      b.textContent = '0';
+      G.timeline({ delay: (i % 4) * 0.1, scrollTrigger: { trigger: n, start: 'top 88%', once: true } })
+        .from(n, { y: 90, opacity: 0, duration: 0.9, ease: 'power3.out' })
+        .to(o, { v: to, duration: 2, ease: 'expo.out', onUpdate: () => { b.textContent = fmt(o.v); } }, 0.15)
+        .from($('.num__ruler', n), { scaleX: 0, duration: 1.3, ease: 'power3.inOut' }, 0.15)
+        .from($('.num__v span', n), { opacity: 0, x: -20, duration: 0.6 }, 0.6);
+    });
+    velSkew('.num', '.nums', 'skewY');
+  }
+
+  /* ---------- Заявка наезжает на гарантии, а те уходят вглубь ---------- */
+  function contactFx() {
+    G.fromTo('.contact',
+      { borderTopLeftRadius: 220, borderTopRightRadius: 220 },
+      {
+        borderTopLeftRadius: 0, borderTopRightRadius: 0, ease: 'none',
+        scrollTrigger: { trigger: '.contact', start: 'top bottom', end: 'top 20%', scrub: true },
+      });
+    G.to('.why > .container', {
+      scale: 0.9, opacity: 0.3, yPercent: 8, ease: 'none',
+      scrollTrigger: { trigger: '.contact', start: 'top bottom', end: 'top top', scrub: true },
+    });
+    G.from('.contact__ways li', {
+      x: -50, opacity: 0, duration: 0.9, stagger: 0.12, ease: 'power3.out',
+      scrollTrigger: { trigger: '.contact__ways', start: 'top 90%', once: true },
+    });
+  }
+
+  /* ---------- Летающие стройматериалы ---------- */
+  function floaters() {
+    const items = $$('.fl');
+    items.forEach((el) => {
+      const s = parseFloat(el.dataset.speed) || 1;
+      G.fromTo(el, { y: 160 * s, rotation: -60 * s }, {
+        y: -160 * s, rotation: 60 * s, ease: 'none',
+        scrollTrigger: { trigger: el.closest('section'), start: 'top bottom', end: 'bottom top', scrub: 0.6 },
+      });
+    });
+  }
+
+  /* ---------- Отвес: опускается по прокрутке и качается от скорости ---------- */
+  function plumbPhysics() {
+    const plumb = $('.plumb');
+    const line = $('.plumb__line');
+    const bob = $('.plumb__bob');
+    const mark = $('.plumb__mark');
+    const bobs = $$('.logo__bob');
+    html.classList.add('bob-js');
+
+    let ang = 0, av = 0, vel = 0, lastY = window.scrollY, markOp = 0, lastTxt = '';
+    let maxY = 1, show = false;
+    const measure = () => {
+      maxY = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      show = getComputedStyle(plumb).display !== 'none';
+    };
+    measure();
+    ST.addEventListener('refresh', measure);
+    window.addEventListener('resize', measure);
+
+    G.ticker.add((time, dt) => {
+      const f = Math.min(3, dt / 16.67);
+      const y = window.scrollY;
+      vel += ((y - lastY) / f - vel) * 0.25;
+      lastY = y;
+      // Пружина: угол тянется к «ветру» от прокрутки, раскачивается и затухает
+      const target = G.utils.clamp(-32, 32, -vel * 0.8);
+      av += (target - ang) * 0.05 * f;
+      av *= Math.pow(0.9, f);
+      ang += av * f;
+
+      const idle = Math.sin(time * 1.96) * 8;
+      const logoAng = G.utils.clamp(-40, 40, idle * 0.7 + ang * 0.9).toFixed(2);
+      bobs.forEach((b) => { b.style.transform = `rotate(${logoAng}deg)`; });
+
+      if (!show) return;
+      const p = Math.min(1, y / maxY);
+      const L = 70 + p * (window.innerHeight - 190);
+      line.style.height = L.toFixed(1) + 'px';
+      bob.style.transform = `translateY(${L.toFixed(1)}px)`;
+      plumb.style.transform = `rotate(${ang.toFixed(2)}deg)`;
+      markOp += ((Math.abs(vel) > 0.6 ? 1 : 0) - markOp) * 0.08 * f;
+      mark.style.opacity = markOp.toFixed(3);
+      const txt = (y < 50 ? '±' : '−') + (y / 100).toFixed(3).replace('.', ',');
+      if (txt !== lastTxt) { mark.textContent = txt; lastTxt = txt; }
+    });
+  }
+
+  /* ---------- Пункты меню «перебирают» буквы при наведении ---------- */
+  function scramble() {
+    const CH = 'абвгдежзиклмнопрстуфхцчшэюя0123456789';
+    $$('.nav a, .footer__nav a').forEach((a) => {
+      const orig = a.textContent;
+      a.setAttribute('aria-label', orig);
+      let raf = 0;
+      a.addEventListener('pointerenter', () => {
+        cancelAnimationFrame(raf);
+        const t0 = performance.now();
+        const step = (now) => {
+          const p = Math.min(1, (now - t0) / 420);
+          const n = Math.floor(p * orig.length);
+          let s = orig.slice(0, n);
+          for (let i = n; i < orig.length; i++) s += orig[i] === ' ' ? ' ' : CH[(Math.random() * CH.length) | 0];
+          a.textContent = p < 1 ? s : orig;
+          if (p < 1) raf = requestAnimationFrame(step);
+        };
+        raf = requestAnimationFrame(step);
+      });
+    });
   }
 
   /* ---------- «Магнитные» кнопки ---------- */
@@ -893,29 +977,36 @@
 
   /* ---------- Запуск ---------- */
   motionToggle();
-  buildSceneMarkup();
-  calc();
+  const countIn = calc();
 
   if (!reduce) snow();
-  if (!reduce && finePointer) crosshair();
 
   // Порядок важен: анимации по прокрутке создаём сверху вниз по странице,
   // чтобы закреплённые секции правильно сдвигали всё, что ниже
   if (motion) {
-    heroIntro();
+    window.__otvesStarted = true;
+    heroScroll();
     tapes();
     buildSceneTimeline();
     projects();
+    splitHeadings();
+    calcFx(countIn);
+    nums();
     why();
+    contactFx();
     leadForm();
     footerWord();
-    if (finePointer) magnets();
+    floaters();
+    plumbPhysics();
+    if (finePointer) { magnets(); scramble(); }
+    // Сначала заставка (если первый заход), потом влёт первого экрана
+    loader(heroIntro);
 
     const refresh = () => ST.refresh();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(refresh);
     window.addEventListener('load', refresh);
   } else {
-    html.classList.remove('intro');
+    html.classList.remove('intro', 'loading');
     projects();
     leadForm();
   }
