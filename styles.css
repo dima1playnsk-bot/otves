@@ -329,3 +329,5 @@ button, input, select, textarea { font: inherit; color: inherit; }
   .summary:first-child { padding-top: 14px; }
   .results .summary { padding-top: 14px; }
 }
+
+.act-closed:hover { color: #FF8A7A; border-color: #FF8A7A; }

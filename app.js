@@ -49,12 +49,13 @@
     { id: 'interested', label: 'Интересно' },
     { id: 'declined', label: 'Отказ' },
     { id: 'hassite', label: 'Сайт есть' },
+    { id: 'closed', label: 'Не работает' },
   ];
   const WORK = ['checked', 'contacted', 'interested'];
-  const SUMMARY_LABELS = { new: 'новые', checked: 'проверено', contacted: 'связался', interested: 'интересно', declined: 'отказ', hassite: 'сайт есть' };
+  const SUMMARY_LABELS = { new: 'новые', checked: 'проверено', contacted: 'связался', interested: 'интересно', declined: 'отказ', hassite: 'сайт есть', closed: 'не работает' };
 
   const COLORS = { new: '#F2C14E', work: '#6EA8FE', hot: '#4CC38A', off: '#5A606A' };
-  const DOT = { new: 'new', checked: 'work', contacted: 'work', interested: 'hot', declined: 'off', hassite: 'off' };
+  const DOT = { new: 'new', checked: 'work', contacted: 'work', interested: 'hot', declined: 'off', hassite: 'off', closed: 'off' };
 
   // Ссылка в поле «сайт» на соцсеть или сервис записи — своего сайта нет.
   const PAGE_HOSTS = [
@@ -418,6 +419,9 @@
     return state.all.filter((b) => {
       b._target = isTarget(b);
       const st = statusOf(b.id);
+      // Закрытые видны только в фильтре «Не работают».
+      if (f.status === 'closed') return st === 'closed';
+      if (st === 'closed') return false;
       if (!f.sites && !b._target) return false;
       if (f.chains && b.chain) return false;
       if (f.phone && !b.phones.length) return false;
@@ -442,6 +446,7 @@
   const telHref = (p) => 'tel:' + p.replace(/[^\d+]/g, '');
 
   function badgeOf(b, st) {
+    if (st === 'closed') return { kind: 'own', text: 'Не работает' };
     if (st === 'hassite') return { kind: 'own', text: 'Сайт есть' };
     if (st === 'checked') return { kind: 'none', text: 'Сайта нет, проверено' };
     return { kind: b.site.kind, text: b.site.label };
@@ -480,6 +485,7 @@
       <div class="biz-work">
         <select class="status-select" data-act="status" aria-label="Статус">${options}</select>
         <button class="act" type="button" data-act="note">${note ? 'Изменить заметку' : 'Заметка'}</button>
+        ${st === 'closed' ? '' : '<button class="act act-closed" type="button" data-act="closed">Не работает</button>'}
       </div>
       ${note ? `<p class="note-text">${esc(note)}</p>` : ''}
     </li>`;
@@ -629,6 +635,12 @@
       const act = actEl && actEl.dataset.act;
       if (act === 'locate') select(li.dataset.id, inPopup ? 'popup' : 'list');
       if (act === 'note') toggleNote(li, actEl);
+      if (act === 'closed') {
+        const id = li.dataset.id;
+        updateLead(id, { status: 'closed' });
+        if (popupId === id && popup) popup.remove();
+        if (state.view === 'leads') renderLeads(); else if (state.loaded) { renderChips(); render(); }
+      }
     });
     ul.addEventListener('change', (e) => {
       const sel = e.target.closest('select[data-act="status"]');
