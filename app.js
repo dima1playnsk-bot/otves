@@ -445,6 +445,20 @@
   const webSearchUrl = (b) => `https://yandex.ru/search/?text=${encodeURIComponent(`${b.name} ${CITY.name} сайт`)}`;
   const telHref = (p) => 'tel:' + p.replace(/[^\d+]/g, '');
 
+  const ICON_VK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2.5 6.5h3.3c.4 3.3 1.9 5.5 3.4 6V6.5h3.1v3.6c1.4-.2 2.9-1.9 3.4-3.6h3.1c-.5 2.3-2.1 4-3.3 4.8 1.2.6 3.2 2.2 3.9 5.2h-3.4c-.6-1.9-2.1-3.3-3.7-3.5v3.5h-.4C6.3 16.5 2.8 12.6 2.5 6.5z"/></svg>';
+  const ICON_TG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M21.4 4.3 2.9 11.4c-1.1.4-1 1.2-.2 1.5l4.7 1.5 1.8 5.5c.2.6.4.8.9.8.4 0 .6-.2.9-.4l2.3-2.2 4.7 3.5c.9.5 1.5.2 1.7-.8l3.1-14.6c.3-1.3-.5-1.8-1.4-1.5zM9.6 14.5l8.5-5.4c.4-.2.7 0 .4.3l-7.2 6.5-.3 3.1-1.4-4.5z"/></svg>';
+
+  // Иконки ВК и Telegram: яркая — ссылка известна, тусклая — откроется поиск по названию.
+  function socialIcons(b) {
+    const q = `${b.name} ${CITY.name}`;
+    const vk = b.socials.find((s) => s.label === 'ВКонтакте');
+    const tg = b.socials.find((s) => s.label === 'Telegram');
+    const vkUrl = vk ? vk.url : 'https://vk.com/search/communities?q=' + encodeURIComponent(q);
+    const tgUrl = tg ? tg.url : 'https://yandex.ru/search/?text=' + encodeURIComponent(q + ' site:t.me');
+    return `<a class="soc${vk ? ' known' : ''}" href="${esc(vkUrl)}" target="_blank" rel="noopener" title="${vk ? 'ВКонтакте' : 'Найти во ВКонтакте'}" aria-label="${vk ? 'ВКонтакте' : 'Найти во ВКонтакте'}">${ICON_VK}</a>`
+      + `<a class="soc${tg ? ' known' : ''}" href="${esc(tgUrl)}" target="_blank" rel="noopener" title="${tg ? 'Telegram' : 'Найти в Telegram'}" aria-label="${tg ? 'Telegram' : 'Найти в Telegram'}">${ICON_TG}</a>`;
+  }
+
   function badgeOf(b, st) {
     if (st === 'closed') return { kind: 'own', text: 'Не работает' };
     if (st === 'hassite') return { kind: 'own', text: 'Сайт есть' };
@@ -460,7 +474,9 @@
     const contacts = [];
     b.phones.forEach((p) => contacts.push(`<a href="${esc(telHref(p))}">${esc(p)}</a>`));
     if (b.email && /^[^\s@]+@[^\s@]+$/.test(b.email)) contacts.push(`<a href="mailto:${esc(b.email)}">${esc(b.email)}</a>`);
-    b.socials.forEach((s) => contacts.push(`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}</a>`));
+    // ВК и Telegram показываем иконками ниже, остальные соцсети — текстом.
+    b.socials.filter((s) => s.label !== 'ВКонтакте' && s.label !== 'Telegram')
+      .forEach((s) => contacts.push(`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}</a>`));
     if ((b.site.kind === 'own' || b.site.kind === 'weak') && b.site.url) {
       contacts.push(`<a href="${esc(b.site.url)}" target="_blank" rel="noopener">${esc(hostOf(b.site.url))}</a>`);
     }
@@ -477,6 +493,7 @@
       ${contacts.length ? `<p class="biz-contacts">${contacts.join('')}</p>` : ''}
       ${b.hours ? `<p class="biz-hours">${esc(b.hours)}</p>` : ''}
       <div class="biz-actions">
+        ${socialIcons(b)}
         <a class="act" href="${esc(yandexUrl(b))}" target="_blank" rel="noopener">Яндекс Карты</a>
         <a class="act" href="${esc(gisUrl(b))}" target="_blank" rel="noopener">2ГИС</a>
         <a class="act" href="${esc(webSearchUrl(b))}" target="_blank" rel="noopener">Найти сайт</a>

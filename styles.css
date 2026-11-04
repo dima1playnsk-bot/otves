@@ -331,3 +331,18 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 
 .act-closed:hover { color: #FF8A7A; border-color: #FF8A7A; }
+
+/* Иконки ВК и Telegram в карточке */
+.soc {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px; height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--off);
+}
+.soc svg { width: 16px; height: 16px; }
+.soc:hover { color: var(--muted); border-color: var(--muted); }
+.soc.known { color: var(--text); border-color: var(--muted); }
+.soc.known:hover { color: var(--accent); border-color: var(--accent); }
