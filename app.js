@@ -442,7 +442,7 @@
 
   const yandexUrl = (b) => `https://yandex.ru/maps/?ll=${b.lon.toFixed(6)},${b.lat.toFixed(6)}&z=18&text=${encodeURIComponent(b.name)}`;
   const gisUrl = (b) => `https://2gis.ru/search/${encodeURIComponent(b.name)}?m=${b.lon.toFixed(6)}%2C${b.lat.toFixed(6)}%2F18`;
-  const webSearchUrl = (b) => `https://yandex.ru/search/?text=${encodeURIComponent(`${b.name} ${CITY.name} сайт`)}`;
+  const webSearchUrl = (b) => `https://www.google.com/search?q=${encodeURIComponent(`${b.name} ${CITY.name} сайт`)}`;
   const telHref = (p) => 'tel:' + p.replace(/[^\d+]/g, '');
 
   const ICON_VK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2.5 6.5h3.3c.4 3.3 1.9 5.5 3.4 6V6.5h3.1v3.6c1.4-.2 2.9-1.9 3.4-3.6h3.1c-.5 2.3-2.1 4-3.3 4.8 1.2.6 3.2 2.2 3.9 5.2h-3.4c-.6-1.9-2.1-3.3-3.7-3.5v3.5h-.4C6.3 16.5 2.8 12.6 2.5 6.5z"/></svg>';
@@ -454,7 +454,7 @@
     const vk = b.socials.find((s) => s.label === 'ВКонтакте');
     const tg = b.socials.find((s) => s.label === 'Telegram');
     const vkUrl = vk ? vk.url : 'https://vk.com/search/communities?q=' + encodeURIComponent(q);
-    const tgUrl = tg ? tg.url : 'https://yandex.ru/search/?text=' + encodeURIComponent(q + ' site:t.me');
+    const tgUrl = tg ? tg.url : 'https://www.google.com/search?q=' + encodeURIComponent(q + ' site:t.me');
     return `<a class="soc${vk ? ' known' : ''}" href="${esc(vkUrl)}" target="_blank" rel="noopener" title="${vk ? 'ВКонтакте' : 'Найти во ВКонтакте'}" aria-label="${vk ? 'ВКонтакте' : 'Найти во ВКонтакте'}">${ICON_VK}</a>`
       + `<a class="soc${tg ? ' known' : ''}" href="${esc(tgUrl)}" target="_blank" rel="noopener" title="${tg ? 'Telegram' : 'Найти в Telegram'}" aria-label="${tg ? 'Telegram' : 'Найти в Telegram'}">${ICON_TG}</a>`;
   }
