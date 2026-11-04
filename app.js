@@ -335,11 +335,13 @@
         }
       }
       map.addSource('biz', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+      // Зум должен быть снаружи выражения: interpolate по зуму, внутри — размер по типу точки.
+      const sized = (big, small) => ['case', ['get', 'target'], big, small];
       const radius = (base) => ['interpolate', ['linear'], ['zoom'], 10, base * 0.6, 13, base, 17, base * 1.8];
       map.addLayer({
         id: 'biz-dots', type: 'circle', source: 'biz',
         paint: {
-          'circle-radius': ['case', ['get', 'target'], radius(4), radius(2.6)],
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 10, sized(2.4, 1.6), 13, sized(4, 2.6), 17, sized(7, 4.5)],
           'circle-color': ['get', 'color'],
           'circle-stroke-color': '#121316',
           'circle-stroke-width': 1,
@@ -350,9 +352,18 @@
         filter: ['==', ['get', 'id'], ''],
         paint: { 'circle-radius': radius(8), 'circle-color': 'rgba(0,0,0,0)', 'circle-stroke-color': '#E9EAEC', 'circle-stroke-width': 2 },
       });
-      map.on('click', 'biz-dots', (e) => {
-        const f = e.features && e.features[0];
-        if (f) select(f.properties.id, 'map');
+      // Точки маленькие, поэтому ловим клик в радиусе 10 пикселей и берём ближайшую.
+      map.on('click', (e) => {
+        const { x, y } = e.point;
+        const found = map.queryRenderedFeatures([[x - 10, y - 10], [x + 10, y + 10]], { layers: ['biz-dots'] });
+        if (!found.length) return;
+        let best = found[0], bestD = Infinity;
+        for (const f of found) {
+          const p = map.project(f.geometry.coordinates);
+          const d = (p.x - x) ** 2 + (p.y - y) ** 2;
+          if (d < bestD) { bestD = d; best = f; }
+        }
+        select(best.properties.id, 'map');
       });
       map.on('mouseenter', 'biz-dots', () => { map.getCanvas().style.cursor = 'pointer'; });
       map.on('mouseleave', 'biz-dots', () => { map.getCanvas().style.cursor = ''; });
