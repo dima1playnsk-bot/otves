@@ -612,6 +612,26 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .foot p { margin: 0; }
 
+/* ---------- Карточка бизнеса на карте ---------- */
+
+.biz-popup { z-index: 4; }
+.biz-popup .maplibregl-popup-content {
+  padding: 0;
+  border-radius: var(--radius-m);
+  box-shadow: 0 8px 30px rgba(20, 43, 102, 0.25);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+.biz-popup .maplibregl-popup-close-button {
+  width: 32px; height: 32px;
+  font-size: 22px;
+  color: var(--muted);
+  z-index: 1;
+}
+.popup-list .biz { padding: 14px 16px; border-bottom: 0; background: none; }
+.popup-list .biz::before, .popup-list .biz::after { display: none; }
+.popup-list .biz-head { padding-right: 24px; }
+
 /* ---------- Подписи MapLibre ---------- */
 
 .maplibregl-ctrl-attrib { font: 11px/1.4 var(--font); }

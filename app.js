@@ -224,6 +224,7 @@
       socials,
       hours: prettyHours(t.opening_hours),
       site,
+      email: (t.email || t['contact:email'] || '').split(';')[0].trim(),
       chain: Boolean(t.brand || t['brand:wikidata']),
       lat, lon,
     };
@@ -234,7 +235,8 @@
   function buildQuery(cats, b) {
     const bbox = [b.s, b.w, b.n, b.e].map((x) => x.toFixed(5)).join(',');
     const parts = cats.flatMap((c) => c.q).map(([k, v]) => `nwr["${k}"="${v}"]["name"](${bbox});`).join('');
-    return `[out:json][timeout:40];(${parts});out center tags qt;`;
+    // Небольшие лимиты времени и памяти: занятый сервер охотнее берёт такие запросы.
+    return `[out:json][timeout:30][maxsize:67108864];(${parts});out center tags qt;`;
   }
 
   let goodEndpoint = 0;
@@ -309,26 +311,38 @@
     });
   }
 
-  // Ответы запоминаем на 12 часов: повторный поиск того же места не ждёт серверов.
-  const CACHE_KEY = 'otves.cache.v1';
+  /* Ускорение: сервер спрашиваем сразу про большой кусок вокруг карты (до 3×3 экранов),
+     ответ запоминаем на 12 часов. Пока карту двигают внутри этого куска, поиск идёт
+     без сервера — мгновенно. */
+  const CACHE_KEY = 'otves.cache.v2';
   const CACHE_TTL = 12 * 3600 * 1000;
+  let memCache = store.get(CACHE_KEY, []);
+  if (!Array.isArray(memCache)) memCache = [];
 
-  function readCache(query) {
-    const list = store.get(CACHE_KEY, []);
-    const hit = Array.isArray(list) && list.find((x) => x.q === query && Date.now() - x.t < CACHE_TTL);
+  const catsKey = (cats) => cats.map((c) => c.id).sort().join(',');
+  const covers = (a, b) => a.s <= b.s && a.w <= b.w && a.n >= b.n && a.e >= b.e;
+
+  function readCache(key, bounds) {
+    const hit = memCache.find((x) => x.k === key && covers(x.b, bounds) && Date.now() - x.t < CACHE_TTL);
     return hit ? hit.els : null;
   }
 
-  function writeCache(query, els) {
-    let list = store.get(CACHE_KEY, []);
-    if (!Array.isArray(list)) list = [];
-    list = [{ q: query, t: Date.now(), els }, ...list.filter((x) => x.q !== query && Date.now() - x.t < CACHE_TTL)].slice(0, 5);
+  function writeCache(key, bbox, els) {
+    memCache = [{ k: key, b: bbox, t: Date.now(), els }, ...memCache.filter((x) => Date.now() - x.t < CACHE_TTL)].slice(0, 8);
     try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(list));
+      localStorage.setItem(CACHE_KEY, JSON.stringify(memCache));
     } catch (e) {
-      // Не влезло — оставляем только последний ответ.
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify(list.slice(0, 1))); } catch (e2) { /* без кеша */ }
+      // Не влезло в память браузера — сохраняем только последний ответ.
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(memCache.slice(0, 1))); } catch (e2) { /* без кеша */ }
     }
+  }
+
+  // Расширяем область поиска, но не больше разрешённой площади.
+  function expandBounds(b, nCats) {
+    const k = Math.max(1, Math.min(3, Math.sqrt(maxArea(nCats) * 0.9 / Math.max(areaKm2(b), 0.01))));
+    const dLat = (b.n - b.s) * (k - 1) / 2;
+    const dLon = (b.e - b.w) * (k - 1) / 2;
+    return { s: b.s - dLat, w: b.w - dLon, n: b.n + dLat, e: b.e + dLon };
   }
 
   async function geocode(q) {
@@ -434,6 +448,12 @@
     map.on('moveend', () => {
       updateHint();
       saveState();
+      // Сдвинули карту внутри уже загруженного куска — обновляем список сразу, без сервера.
+      if (state.userMoved && state.searched && !state.loading && state.cats.size
+          && readCache(catsKey(selectedCats()), currentBounds())) {
+        runSearch();
+        return;
+      }
       $('#hereBtn').hidden = !(state.userMoved && state.searched && !state.loading && areaOk());
     });
   }
@@ -535,21 +555,23 @@
     searchAbort = new AbortController();
 
     const what = cats.length > 3 ? 'выбранные бизнесы' : cats.map((c) => c.chip.toLowerCase()).join(', ');
-    setLoading(true, 'Ищу ' + what + '…');
+    const key = catsKey(cats);
     showNotice('');
     try {
-      const query = buildQuery(cats, bounds);
-      let els = readCache(query);
+      let els = readCache(key, bounds);
       if (!els) {
-        els = await overpass(query, searchAbort.signal, (msg) => {
+        setLoading(true, 'Ищу ' + what + '…');
+        const big = expandBounds(bounds, cats.length);
+        els = await overpass(buildQuery(cats, big), searchAbort.signal, (msg) => {
           if (token === searchToken) $('#loaderText').textContent = msg;
         });
-        writeCache(query, els);
+        writeCache(key, big, els);
       }
       if (token !== searchToken) return;
       const seen = new Set();
+      const inView = (b) => b.lat >= bounds.s && b.lat <= bounds.n && b.lon >= bounds.w && b.lon <= bounds.e;
       state.all = els.map(toBiz).filter((b) => {
-        if (b.lat == null || !b.name) return false;
+        if (b.lat == null || !b.name || !inView(b)) return false;
         const key = b.name.toLowerCase() + '|' + b.lat.toFixed(4) + '|' + b.lon.toFixed(4);
         if (seen.has(key)) return false;
         seen.add(key);
@@ -558,7 +580,7 @@
       state.searched = true;
       state.userMoved = false;
       state.shown = PAGE_SIZE;
-      state.selected = null;
+      if (!state.all.some((b) => b.id === state.selected)) state.selected = null;
       render();
     } catch (e) {
       if (token !== searchToken) return;
@@ -630,7 +652,8 @@
     const meta = [b.cat, b.addr || 'адрес не указан'].filter(Boolean).join(', ');
 
     const contacts = [];
-    b.phones.slice(0, 2).forEach((p) => contacts.push(`<a href="${esc(telHref(p))}">${esc(p)}</a>`));
+    b.phones.forEach((p) => contacts.push(`<a href="${esc(telHref(p))}">${esc(p)}</a>`));
+    if (b.email && /^[^\s@]+@[^\s@]+$/.test(b.email)) contacts.push(`<a href="mailto:${esc(b.email)}">${esc(b.email)}</a>`);
     b.socials.forEach((s) => contacts.push(`<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.label)}</a>`));
     if ((b.site.kind === 'own' || b.site.kind === 'weak') && b.site.url) {
       contacts.push(`<a href="${esc(b.site.url)}" target="_blank" rel="noopener">${esc(hostOf(b.site.url))}</a>`);
@@ -651,6 +674,7 @@
         <a class="act" href="${esc(yandexUrl(b))}" target="_blank" rel="noopener">Яндекс Карты</a>
         <a class="act" href="${esc(gisUrl(b))}" target="_blank" rel="noopener">2ГИС</a>
         <a class="act" href="${esc(webSearchUrl(b))}" target="_blank" rel="noopener">Найти сайт</a>
+        ${b.osm ? `<a class="act" href="https://www.openstreetmap.org/${esc(b.osm)}" target="_blank" rel="noopener">OSM</a>` : ''}
       </div>
       <div class="biz-work">
         <label class="sr-only" for="st-${esc(b.id)}">Статус</label>
@@ -744,13 +768,41 @@
     if (row) row.classList.add('is-selected');
 
     const b = findBiz(id);
-    if (from === 'map' && row) {
-      row.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: isNarrow() ? 'start' : 'nearest' });
-    }
+    if (from === 'map' && row && !isNarrow()) row.scrollIntoView({ block: 'nearest' });
     if (from === 'list' && b && mapReady) {
-      if (isNarrow()) $('#mapWrap').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+      if (isNarrow()) $('#mapWrap').scrollIntoView({ block: 'start' });
       map.easeTo({ center: [b.lon, b.lat], zoom: Math.max(map.getZoom(), 16), duration: reduceMotion ? 0 : 700 });
     }
+    if (from !== 'popup' && b) openPopup(b);
+  }
+
+  // Карточка одного бизнеса прямо на карте: вся информация и кнопки, без поиска по списку.
+  let popup = null;
+  let popupId = null;
+
+  function openPopup(b) {
+    if (!mapReady) return;
+    if (popup) popup.remove();
+    const ul = document.createElement('ul');
+    ul.className = 'list popup-list';
+    ul.innerHTML = rowHtml(b);
+    bindList(ul);
+    popupId = b.id;
+    popup = new maplibregl.Popup({
+      offset: { top: [0, 6], bottom: [0, -36], 'bottom-left': [0, -36], 'bottom-right': [0, -36], left: [12, -18], right: [-12, -18], 'top-left': [0, 6], 'top-right': [0, 6], center: [0, 0] },
+      maxWidth: '360px',
+      className: 'biz-popup',
+      focusAfterOpen: false,
+    }).setLngLat([b.lon, b.lat]).setDOMContent(ul).addTo(map);
+    popup.on('close', () => {
+      if (popupId === b.id) { popupId = null; popup = null; }
+    });
+  }
+
+  function refreshPopup() {
+    if (!popup || !popupId) return;
+    const b = findBiz(popupId);
+    if (b) openPopup(b);
   }
 
   // ---------- Выгрузка для Excel ----------
@@ -795,7 +847,7 @@
       if (!li) return;
       const actEl = e.target.closest('[data-act]');
       const act = actEl && actEl.dataset.act;
-      if (act === 'locate') select(li.dataset.id, 'list');
+      if (act === 'locate') select(li.dataset.id, ul.classList.contains('popup-list') ? 'popup' : 'list');
       if (act === 'note') toggleNote(li, actEl);
     });
     ul.addEventListener('change', (e) => {
@@ -813,8 +865,14 @@
         badge.className = 'badge badge-' + kind;
         badge.textContent = sel.value === 'hassite' ? 'Сайт есть' : sel.value === 'checked' ? 'Сайта нет, проверено' : b.site.label;
       }
-      if (state.all.length) drawMap(visibleList());
-      if (state.view === 'leads') renderLeadsSummaryOnly();
+      if (ul.classList.contains('popup-list')) {
+        // Поменяли в карточке на карте — обновляем и список слева.
+        if (state.view === 'leads') renderLeads(); else if (state.all.length) render();
+      } else {
+        if (state.all.length) drawMap(visibleList());
+        if (state.view === 'leads') renderLeadsSummaryOnly();
+        if (popupId === id) refreshPopup();
+      }
     });
   }
 
