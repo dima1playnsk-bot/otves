@@ -2,713 +2,113 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>«Отвес» — строительство домов под ключ в Новосибирске</title>
-  <meta name="description" content="Строим тёплые дома из газобетона, кирпича и бруса в Новосибирске и области. Смета фиксируется в договоре, оплата по этапам, гарантия 10 лет.">
-  <meta name="theme-color" content="#1D4596">
-  <!-- Компания вымышленная: не показываем сайт в поиске как настоящую организацию -->
-  <meta name="robots" content="noindex, follow">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Отвес — бизнесы без сайта на карте</title>
+  <meta name="description" content="Показывает на карте парикмахерские, кафе, автосервисы и другие местные бизнесы, у которых нет своего сайта. Данные OpenStreetMap.">
+  <meta name="theme-color" content="#142B66">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-
-  <!-- Превью ссылки в мессенджерах и соцсетях -->
-  <meta property="og:type" content="website">
-  <meta property="og:locale" content="ru_RU">
-  <meta property="og:site_name" content="Отвес">
-  <meta property="og:url" content="https://dima1playnsk-bot.github.io/otves/">
-  <meta property="og:title" content="«Отвес» — дома, в которых тепло в минус сорок">
-  <meta property="og:description" content="Строим дома под ключ в Новосибирске. Смета фиксируется в договоре, оплата по этапам, гарантия 10 лет.">
-  <meta property="og:image" content="https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=1200&h=630&q=80">
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">
-  <meta name="twitter:card" content="summary_large_image">
-
-  <!-- Главное фото грузим заранее, чтобы первый экран появился быстрее -->
-  <link rel="preload" as="image" fetchpriority="high"
-        imagesrcset="https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=900&q=75 900w, https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=1500&q=80 1500w, https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=2400&q=80 2400w"
-        imagesizes="100vw">
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Alumni+Sans:ital,wght@0,400..900;1,400..900&family=Onest:wght@400..700&display=swap" rel="stylesheet">
-  <link rel="preconnect" href="https://images.unsplash.com">
-  <link rel="stylesheet" href="styles.css?v=5">
-
-  <script>
-    // Если в системе выключены анимации — сайт по умолчанию спокойный,
-    // но посетитель может включить их кнопкой (выбор запоминается).
-    (function () {
-      var d = document.documentElement, forced = false, seen = false;
-      try { forced = localStorage.getItem('otves-motion') === 'on'; } catch (e) {}
-      try { seen = sessionStorage.getItem('otves-seen') === '1'; } catch (e) {}
-      if (/[?&]motion=1/.test(location.search)) forced = true;
-      var osReduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-      window.__otvesOsReduce = osReduce;
-      window.__otvesReduce = osReduce && !forced;
-      if (window.__otvesReduce) {
-        d.classList.add('reduce');
-      } else {
-        // Прячем первый экран до старта анимации (при первом заходе ещё и заставка).
-        // Если скрипты не загрузятся — покажем всё через 4 с
-        d.classList.add('intro');
-        if (!seen) d.classList.add('loading');
-        setTimeout(function () { if (!window.__otvesStarted) d.classList.remove('intro', 'loading'); }, 4000);
-      }
-    })();
-  </script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=Unbounded:wght@600&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.css">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js" defer></script>
+  <script src="app.js" defer></script>
 </head>
 <body>
-
-<!-- Значки стройматериалов, которые летают по секциям -->
-<svg class="sprite" aria-hidden="true" focusable="false">
-  <symbol id="f-bolt" viewBox="0 0 48 48"><path d="M24 5L40.5 14.5V33.5L24 43L7.5 33.5V14.5Z"/><circle cx="24" cy="24" r="7.5"/></symbol>
-  <symbol id="f-cross" viewBox="0 0 48 48"><circle cx="24" cy="24" r="13"/><path d="M24 3V45M3 24H45"/></symbol>
-  <symbol id="f-brick" viewBox="0 0 48 48"><rect x="3" y="13" width="42" height="22" rx="1.5"/><path d="M3 24H45M17 13V24M31 24V35"/></symbol>
-  <symbol id="f-square" viewBox="0 0 48 48"><path d="M5 43V5L43 43Z"/><path d="M12 36V22L26 36Z"/><path d="M5 12H9M5 19H9M5 26H9M5 33H9"/></symbol>
-  <symbol id="f-level" viewBox="0 0 48 48"><rect x="2" y="17" width="44" height="14" rx="2"/><rect x="18" y="20.5" width="12" height="7" rx="3.5"/><path d="M24 20.5V27.5"/></symbol>
-  <symbol id="f-screw" viewBox="0 0 48 48"><path d="M17 5H31L29 11H19Z"/><path d="M24 11V43"/><path d="M20 15L28 19M20 21L28 25M20 27L28 31M20 33L28 37"/></symbol>
-</svg>
-
-<!-- Заставка при первом заходе: отвес падает и выставляет уровень -->
-<div class="loader" aria-hidden="true">
-  <div class="loader__half loader__half--t"></div>
-  <div class="loader__half loader__half--b"></div>
-  <div class="loader__plumb">
-    <i class="loader__line"></i>
-    <svg class="loader__bob" viewBox="0 0 26 36"><path d="M2 0H24L13 35Z"/></svg>
-  </div>
-  <i class="loader__level"></i>
-  <div class="loader__info">
-    <span class="loader__num">0</span>
-    <span class="loader__cap">Выставляем по&nbsp;уровню</span>
-  </div>
-</div>
-
-<!-- Отвес сбоку: опускается по мере прокрутки и качается от скорости -->
-<div class="plumb" aria-hidden="true">
-  <i class="plumb__line"></i>
-  <div class="plumb__bob">
-    <svg viewBox="0 0 20 28"><path d="M1 0H19L10 27Z"/></svg>
-    <span class="plumb__mark">±0,000</span>
-  </div>
-</div>
-
-<a class="skip" href="#main">Перейти к содержанию</a>
-
-<!-- Прогресс прокрутки в виде строительной рулетки -->
-<div class="tape" aria-hidden="true"><div class="tape__fill"></div></div>
-
-<header class="header">
-  <a class="logo" href="#top" aria-label="Отвес — на главную">
-    <svg class="logo__mark" viewBox="0 0 24 34" aria-hidden="true">
-      <path d="M4 1.5H20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
-      <g class="logo__bob">
-        <path d="M12 2V14" stroke="currentColor" stroke-width="1.6"/>
-        <path d="M6 14H18L12 32Z" fill="#FFB800"/>
-      </g>
-    </svg>
-    <span class="logo__word" translate="no">Отвес</span>
-  </a>
-  <nav class="nav" aria-label="Разделы сайта">
-    <a href="#build">Как строим</a>
-    <a href="#projects">Проекты</a>
-    <a href="#calc">Цены</a>
-    <a href="#why">Гарантии</a>
-    <a href="#faq">Вопросы</a>
-    <a href="#contact">Контакты</a>
-  </nav>
-  <a class="header__phone" href="tel:+73830000000">+7 383 000-00-00</a>
-  <a class="btn btn--primary btn--small header__cta" href="#contact"><span>Получить смету</span></a>
-  <button class="burger" type="button" aria-expanded="false" aria-controls="mnav" aria-label="Открыть меню">
-    <span></span><span></span>
-  </button>
-</header>
-
-<div class="mnav" id="mnav">
-  <nav class="mnav__links" aria-label="Меню">
-    <a href="#build">Как строим</a>
-    <a href="#projects">Проекты</a>
-    <a href="#calc">Цены</a>
-    <a href="#why">Гарантии</a>
-    <a href="#faq">Вопросы</a>
-    <a href="#contact">Контакты</a>
-  </nav>
-  <a class="mnav__phone" href="tel:+73830000000">+7 383 000-00-00</a>
-  <a class="btn btn--primary btn--arrow mnav__cta" href="#contact"><span>Получить смету</span></a>
-</div>
-
-<main id="main">
-
-  <!-- ============ ПЕРВЫЙ ЭКРАН ============ -->
-  <section class="hero" id="top">
-    <div class="hero__photo" aria-hidden="true">
-      <img width="1800" height="1200" src="https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=1800&q=80"
-           srcset="https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=900&q=75 900w,
-                   https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=1500&q=80 1500w,
-                   https://images.unsplash.com/photo-1549278347-3bad8ad0c29b?auto=format&fit=crop&w=2400&q=80 2400w"
-           sizes="100vw" alt="" fetchpriority="high">
-    </div>
-    <div class="hero__grid" aria-hidden="true"></div>
-    <canvas class="hero__snow" aria-hidden="true"></canvas>
-
-    <div class="container hero__inner">
-      <div class="hero__text">
-        <h1 class="hero__title">
-          <span class="w">Дома,</span> <span class="w">в&nbsp;которых</span> <span class="w">тепло</span> <span class="w">в&nbsp;минус</span> <span class="w">сорок</span>
-        </h1>
-        <p class="hero__lead">Строим под ключ из&nbsp;газобетона, кирпича и&nbsp;бруса в&nbsp;Новосибирске и&nbsp;области. Смета фиксируется в&nbsp;договоре и&nbsp;не&nbsp;меняется до&nbsp;сдачи ключей.</p>
-        <div class="hero__actions">
-          <a class="btn btn--primary btn--arrow magnet" href="#calc"><span>Рассчитать стоимость</span></a>
-          <a class="btn btn--ghost" href="#projects"><span>Смотреть проекты</span></a>
-        </div>
-        <ul class="hero__trust">
-          <li>Оплата по&nbsp;этапам</li>
-          <li>Гарантия 10&nbsp;лет</li>
-          <li>Выезд инженера бесплатно</li>
-        </ul>
-      </div>
-
-    </div>
-
-    <!-- Подписи-«замеры» прямо на фотографии -->
-    <div class="hero__temps" aria-hidden="true">
-      <span class="temp temp--out"><b data-count="-40">−40</b>°&nbsp;на&nbsp;улице</span>
-      <span class="temp temp--in"><b data-count="22">+22</b>°&nbsp;в&nbsp;доме</span>
-    </div>
-
-
-    <a class="hero__hint" href="#build">
-      <span class="hero__plumb" aria-hidden="true"><i></i></span>
-      Листайте вниз — дом построится у&nbsp;вас на&nbsp;глазах
-    </a>
-  </section>
-
-  <!-- ============ ЛЕНТЫ ============ -->
-  <div class="tapes" aria-hidden="true">
-    <div class="tapes__band tapes__band--a">
-      <div class="tapes__track">
-        <span class="tapes__item">Фиксированная смета</span><span class="tapes__item">Строим круглый год</span><span class="tapes__item">Гарантия 10 лет</span><span class="tapes__item">Оплата по этапам</span><span class="tapes__item">Камера на участке 24/7</span><span class="tapes__item">Свой проектный отдел</span>
-        <span class="tapes__item">Фиксированная смета</span><span class="tapes__item">Строим круглый год</span><span class="tapes__item">Гарантия 10 лет</span><span class="tapes__item">Оплата по этапам</span><span class="tapes__item">Камера на участке 24/7</span><span class="tapes__item">Свой проектный отдел</span>
-      </div>
-    </div>
-    <div class="tapes__band tapes__band--b">
-      <div class="tapes__track">
-        <span class="tapes__item">Газобетон D500</span><span class="tapes__item">Монолитная плита</span><span class="tapes__item">Фальцевая кровля</span><span class="tapes__item">Тёплые окна</span><span class="tapes__item">Планкен лиственницы</span><span class="tapes__item">Отмостка и газон</span>
-        <span class="tapes__item">Газобетон D500</span><span class="tapes__item">Монолитная плита</span><span class="tapes__item">Фальцевая кровля</span><span class="tapes__item">Тёплые окна</span><span class="tapes__item">Планкен лиственницы</span><span class="tapes__item">Отмостка и газон</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============ СТРОЙКА ПО ПРОКРУТКЕ ============ -->
-  <section class="build" id="build" data-pin>
-    <div class="build__pin">
-      <div class="build__scene">
-        <div class="build__grid" aria-hidden="true"></div>
-
-        <div class="stages">
-          <figure class="stage"><img width="1400" height="933" src="https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1503387837-b154d5074bd2?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Инженер чертит план дома на бумаге" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
-          <figure class="stage"><img width="1400" height="933" src="https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1582540730843-f4418d96ccbe?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Рабочий вяжет арматуру для фундаментной плиты" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
-          <figure class="stage"><img width="1400" height="933" src="https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1701850009190-2859ba2aeea6?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Каменщик кладёт стену из блоков на раствор" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
-          <figure class="stage"><img width="1400" height="933" src="https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1676802037786-3697d60497ae?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Деревянные стропила на крыше строящегося дома" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
-          <figure class="stage"><img width="1400" height="933" src="https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1593786267440-550458cc882a?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Дом в строительных лесах во время отделки фасада" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
-          <figure class="stage"><img width="1400" height="933" src="https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=1400" srcset="https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=900 900w, https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=1400 1400w, https://images.unsplash.com/photo-1748063578185-3d68121b11ff?auto=format&fit=crop&q=80&w=2000 2000w" sizes="(min-width: 900px) 62vw, 100vw" alt="Готовый дом вечером: свет в окнах, газон и дорожка" loading="lazy" decoding="async"><i class="stage__shade"></i></figure>
-        </div>
-        <p class="build__cap" aria-hidden="true"><span class="build__capn">06</span><span class="build__capt">Двор и&nbsp;ключи</span></p>
-
-        <p class="build__week" aria-hidden="true">Неделя <b class="build__weeknum">20</b> из 20</p>
-        <a class="build__skip" href="#projects">Пропустить этапы
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2V13M3 8.5L8 13.5L13 8.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </a>
-        <p class="build__done">
-          <svg viewBox="0 0 48 24" aria-hidden="true"><circle cx="10" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="3"/><path d="M17 12H44M36 12V19M42 12V17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
-          Ключи ваши
-        </p>
-      </div>
-
-      <div class="build__side">
-        <h2 class="build__title">Как строится ваш дом</h2>
-        <p class="build__lead">20&nbsp;недель от&nbsp;чертежа до&nbsp;новоселья. Листайте&nbsp;— и&nbsp;посмотрите, что происходит на&nbsp;участке.</p>
-        <ol class="steps">
-          <li class="step is-active">
-            <button class="step__head" type="button"><span class="step__n">1</span><span class="step__name">Проект и&nbsp;смета</span><span class="step__time">2&nbsp;недели</span></button>
-            <div class="step__body"><p>Подбираем готовый проект или рисуем свой. Считаем смету до&nbsp;последнего самореза и&nbsp;фиксируем цену в&nbsp;договоре.</p></div>
-          </li>
-          <li class="step">
-            <button class="step__head" type="button"><span class="step__n">2</span><span class="step__name">Фундамент</span><span class="step__time">3&nbsp;недели</span></button>
-            <div class="step__body"><p>Изучаем грунт на&nbsp;участке и&nbsp;заливаем утеплённую монолитную плиту. Бетон с&nbsp;завода, протоколы испытаний отдаём вам.</p></div>
-          </li>
-          <li class="step">
-            <button class="step__head" type="button"><span class="step__n">3</span><span class="step__name">Стены и&nbsp;перекрытия</span><span class="step__time">6&nbsp;недель</span></button>
-            <div class="step__body"><p>Кладём газобетон D500, делаем армопояс и&nbsp;монолитное перекрытие. Каждую пятницу присылаем фото- и&nbsp;видеоотчёт.</p></div>
-          </li>
-          <li class="step">
-            <button class="step__head" type="button"><span class="step__n">4</span><span class="step__name">Кровля</span><span class="step__time">3&nbsp;недели</span></button>
-            <div class="step__body"><p>Ставим стропила из&nbsp;сухой доски и&nbsp;фальцевую кровлю. Закрываем дом от&nbsp;дождя и&nbsp;снега до&nbsp;холодов.</p></div>
-          </li>
-          <li class="step">
-            <button class="step__head" type="button"><span class="step__n">5</span><span class="step__name">Окна и&nbsp;фасад</span><span class="step__time">4&nbsp;недели</span></button>
-            <div class="step__body"><p>Ставим тёплые окна и&nbsp;входную дверь, штукатурим фасад, обшиваем фронтон планкеном из&nbsp;лиственницы.</p></div>
-          </li>
-          <li class="step">
-            <button class="step__head" type="button"><span class="step__n">6</span><span class="step__name">Двор и&nbsp;ключи</span><span class="step__time">2&nbsp;недели</span></button>
-            <div class="step__body"><p>Делаем отмостку, дорожки и&nbsp;газон. Передаём ключи, исполнительную документацию и&nbsp;гарантию на&nbsp;10&nbsp;лет.</p></div>
-          </li>
-        </ol>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ ПРОЕКТЫ ============ -->
-  <section class="projects" id="projects" data-pin>
-    <div class="container projects__head">
-      <div><p class="eyebrow" aria-hidden="true">Лист 02 · Проекты</p><h2 class="h2">Готовые проекты</h2></div>
-      <p>Любой проект меняем под&nbsp;участок и&nbsp;семью: переносим стены, добавляем гараж или террасу. Цены указаны за&nbsp;дом под&nbsp;чистовую отделку.</p>
-    </div>
-
-    <div class="projects__viewport">
-      <div class="projects__track">
-
-        <article class="proj">
-          <div class="proj__art">
-            <img class="proj__img" width="800" height="533" src="https://images.unsplash.com/photo-1704307163247-cde12ba3ff28?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1704307163247-cde12ba3ff28?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1704307163247-cde12ba3ff28?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Одноэтажный дом-барн, обшитый деревом, с большими окнами" loading="lazy" decoding="async">
-          </div>
-          <div class="proj__body">
-            <h3 class="proj__name">Барн 98</h3>
-            <dl class="proj__specs">
-              <div><dt>Площадь</dt><dd>98&nbsp;м²</dd></div>
-              <div><dt>Этажей</dt><dd>1</dd></div>
-              <div><dt>Спален</dt><dd>2</dd></div>
-              <div><dt>Срок</dt><dd>4&nbsp;мес.</dd></div>
-            </dl>
-            <p class="proj__price">от&nbsp;6,3&nbsp;млн&nbsp;₽</p>
-            <a class="proj__link" href="#contact" data-project="Барн 98">Обсудить проект</a>
-          </div>
-        </article>
-
-        <article class="proj">
-          <div class="proj__art">
-            <img class="proj__img" width="800" height="533" src="https://images.unsplash.com/photo-1668015642046-22044ddc7247?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1668015642046-22044ddc7247?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1668015642046-22044ddc7247?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Тёмный дом-шале с треугольной крышей среди деревьев" loading="lazy" decoding="async">
-          </div>
-          <div class="proj__body">
-            <h3 class="proj__name">Шале 146</h3>
-            <dl class="proj__specs">
-              <div><dt>Площадь</dt><dd>146&nbsp;м²</dd></div>
-              <div><dt>Этажей</dt><dd>2</dd></div>
-              <div><dt>Спален</dt><dd>3</dd></div>
-              <div><dt>Срок</dt><dd>5&nbsp;мес.</dd></div>
-            </dl>
-            <p class="proj__price">от&nbsp;8,9&nbsp;млн&nbsp;₽</p>
-            <a class="proj__link" href="#contact" data-project="Шале 146">Обсудить проект</a>
-          </div>
-        </article>
-
-        <article class="proj">
-          <div class="proj__art">
-            <img class="proj__img" width="800" height="533" src="https://images.unsplash.com/photo-1756706718604-ef4af3970e33?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1756706718604-ef4af3970e33?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1756706718604-ef4af3970e33?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Двухэтажный дом-куб с плоской крышей и деревянной отделкой" loading="lazy" decoding="async">
-          </div>
-          <div class="proj__body">
-            <h3 class="proj__name">Куб 132</h3>
-            <dl class="proj__specs">
-              <div><dt>Площадь</dt><dd>132&nbsp;м²</dd></div>
-              <div><dt>Этажей</dt><dd>2</dd></div>
-              <div><dt>Спален</dt><dd>3</dd></div>
-              <div><dt>Срок</dt><dd>5&nbsp;мес.</dd></div>
-            </dl>
-            <p class="proj__price">от&nbsp;8&nbsp;млн&nbsp;₽</p>
-            <a class="proj__link" href="#contact" data-project="Куб 132">Обсудить проект</a>
-          </div>
-        </article>
-
-        <article class="proj">
-          <div class="proj__art">
-            <img class="proj__img" width="800" height="533" src="https://images.unsplash.com/photo-1777106322601-578dc9213ace?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1777106322601-578dc9213ace?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1777106322601-578dc9213ace?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Двухэтажный семейный дом со светлым фасадом и газоном" loading="lazy" decoding="async">
-          </div>
-          <div class="proj__body">
-            <h3 class="proj__name">Семейный 184</h3>
-            <dl class="proj__specs">
-              <div><dt>Площадь</dt><dd>184&nbsp;м²</dd></div>
-              <div><dt>Этажей</dt><dd>2</dd></div>
-              <div><dt>Спален</dt><dd>4</dd></div>
-              <div><dt>Срок</dt><dd>6&nbsp;мес.</dd></div>
-            </dl>
-            <p class="proj__price">от&nbsp;11,2&nbsp;млн&nbsp;₽</p>
-            <a class="proj__link" href="#contact" data-project="Семейный 184">Обсудить проект</a>
-          </div>
-        </article>
-
-        <article class="proj">
-          <div class="proj__art">
-            <img class="proj__img" width="800" height="533" src="https://images.unsplash.com/photo-1706164971302-e30c0640cc3b?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1706164971302-e30c0640cc3b?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1706164971302-e30c0640cc3b?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Одноэтажный дом с освещённой верандой вечером" loading="lazy" decoding="async">
-          </div>
-          <div class="proj__body">
-            <h3 class="proj__name">Веранда 76</h3>
-            <dl class="proj__specs">
-              <div><dt>Площадь</dt><dd>76&nbsp;м²</dd></div>
-              <div><dt>Этажей</dt><dd>1</dd></div>
-              <div><dt>Спален</dt><dd>2</dd></div>
-              <div><dt>Срок</dt><dd>3&nbsp;мес.</dd></div>
-            </dl>
-            <p class="proj__price">от&nbsp;4,9&nbsp;млн&nbsp;₽</p>
-            <a class="proj__link" href="#contact" data-project="Веранда 76">Обсудить проект</a>
-          </div>
-        </article>
-
-        <article class="proj proj--own">
-          <div class="proj__art">
-            <img class="proj__img" width="800" height="533" src="https://images.unsplash.com/photo-1649688066830-a0cf04d1bc41?auto=format&fit=crop&q=75&w=800" srcset="https://images.unsplash.com/photo-1649688066830-a0cf04d1bc41?auto=format&fit=crop&q=75&w=600 600w, https://images.unsplash.com/photo-1649688066830-a0cf04d1bc41?auto=format&fit=crop&q=75&w=900 900w" sizes="(min-width: 900px) 400px, 82vw" alt="Архитектор рисует эскиз дома на столе" loading="lazy" decoding="async">
-          </div>
-          <div class="proj__body">
-            <h3 class="proj__name">Ваш проект</h3>
-            <p class="proj__text">Не&nbsp;нашли подходящий? Нарисуем дом с&nbsp;нуля под&nbsp;ваш участок. При заказе строительства проект бесплатный.</p>
-            <a class="proj__link" href="#contact" data-project="Индивидуальный проект">Заказать проект</a>
-          </div>
-        </article>
-
-      </div>
-    </div>
-    <div class="container projects__foot" aria-hidden="true">
-      <div class="projects__bar"><i></i></div>
-      <span class="projects__swipe">Листайте вбок
-        <svg viewBox="0 0 24 12"><path d="M1 6H22M17 1L22 6L17 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </div>
-  </section>
-
-  <!-- ============ КАЛЬКУЛЯТОР ============ -->
-  <section class="calc" id="calc">
-    <div class="floaters" aria-hidden="true">
-      <svg class="fl" viewBox="0 0 48 48" style="left:1.5%;top:6%;width:72px" data-speed="1.2"><use href="#f-bolt"/></svg>
-      <svg class="fl fl--d" viewBox="0 0 48 48" style="right:3%;top:3%;width:58px" data-speed="-0.8"><use href="#f-cross"/></svg>
-      <svg class="fl fl--d" viewBox="0 0 48 48" style="left:46%;top:1%;width:86px" data-speed="0.6"><use href="#f-brick"/></svg>
-      <svg class="fl fl--d" viewBox="0 0 48 48" style="left:1%;bottom:8%;width:92px" data-speed="1.6"><use href="#f-square"/></svg>
-      <svg class="fl" viewBox="0 0 48 48" style="right:2%;bottom:5%;width:104px" data-speed="-1.3"><use href="#f-level"/></svg>
-    </div>
-    <div class="container">
-      <div class="calc__head">
-        <div><p class="eyebrow" aria-hidden="true">Лист 03 · Цены</p><h2 class="h2">Сколько стоит ваш дом</h2></div>
-        <p>Предварительный расчёт по&nbsp;ценам 2026 года. Точную смету пришлём на&nbsp;следующий день после выезда на&nbsp;участок.</p>
-      </div>
-
-      <div class="calc__grid">
-        <form class="calc__form" id="calcForm" onsubmit="return false">
-          <div class="field">
-            <div class="field__top">
-              <label class="field__label" for="area">Площадь дома</label>
-              <output class="field__value" id="areaOut" for="area">140 м²</output>
-            </div>
-            <input class="range" type="range" id="area" name="area" min="60" max="300" step="5" value="140">
-            <div class="range__scale" aria-hidden="true"><span>60</span><span>120</span><span>180</span><span>240</span><span>300</span></div>
-          </div>
-
-          <fieldset class="seg">
-            <legend class="field__label">Этажей</legend>
-            <div class="seg__opts">
-              <span class="seg__thumb" aria-hidden="true"></span>
-              <label><input type="radio" name="floors" value="1"><span>Один</span></label>
-              <label><input type="radio" name="floors" value="2" checked><span>Два</span></label>
-            </div>
-          </fieldset>
-
-          <fieldset class="seg">
-            <legend class="field__label">Стены</legend>
-            <div class="seg__opts">
-              <span class="seg__thumb" aria-hidden="true"></span>
-              <label><input type="radio" name="wall" value="gas" checked><span>Газобетон</span></label>
-              <label><input type="radio" name="wall" value="brick"><span>Кирпич</span></label>
-              <label><input type="radio" name="wall" value="frame"><span>Каркас</span></label>
-              <label><input type="radio" name="wall" value="timber"><span>Брус</span></label>
-            </div>
-            <p class="seg__hint" id="wallHint">Тёплый, быстро кладётся и&nbsp;не&nbsp;даёт усадки. Самый частый выбор наших заказчиков.</p>
-          </fieldset>
-
-          <fieldset class="seg">
-            <legend class="field__label">Готовность</legend>
-            <div class="seg__opts">
-              <span class="seg__thumb" aria-hidden="true"></span>
-              <label><input type="radio" name="finish" value="shell"><span>Тёплый контур</span></label>
-              <label><input type="radio" name="finish" value="prefinish" checked><span>Под чистовую</span></label>
-              <label><input type="radio" name="finish" value="turnkey"><span>Под ключ</span></label>
-            </div>
-            <p class="seg__hint" id="finishHint">Инженерные сети, стяжка и штукатурка. Остаётся поклеить обои и положить пол.</p>
-          </fieldset>
-        </form>
-
-        <div class="calc__result">
-          <!-- Скринридер узнаёт итог расчёта один раз, а не каждый кадр «бегущей» цены -->
-          <p class="vh" aria-live="polite" id="calcLive"></p>
-          <div class="calc__preview">
-            <img width="900" height="600" class="cv-img is-on" data-mat="gas" src="https://images.unsplash.com/photo-1684691376857-5dfb87f6bc65?auto=format&fit=crop&q=75&w=900" alt="Дом из газобетона под белой штукатуркой" loading="lazy" decoding="async">
-            <img width="900" height="600" class="cv-img" data-mat="brick" src="https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&q=75&w=900" alt="Дом из красного кирпича" loading="lazy" decoding="async">
-            <img width="900" height="600" class="cv-img" data-mat="frame" src="https://images.unsplash.com/photo-1762374974129-f9266d9c4efc?auto=format&fit=crop&q=75&w=900" alt="Каркасный дом с отделкой сайдингом" loading="lazy" decoding="async">
-            <img width="900" height="600" class="cv-img" data-mat="timber" src="https://images.unsplash.com/photo-1706047924901-28129757dde7?auto=format&fit=crop&q=75&w=900" alt="Дом из клеёного бруса" loading="lazy" decoding="async">
-            <span class="cv-label" id="cvLabel">газобетон D500</span>
-            <span class="cv-tags" aria-hidden="true"><b id="cvArea">140 м²</b><b id="cvFloors">2 этажа</b><b id="cvFinish">под чистовую</b></span>
-          </div>
-
-          <p class="calc__label">Примерная стоимость</p>
-          <p class="calc__price"><span id="price">7 730 000</span>&nbsp;₽</p>
-          <dl class="calc__meta">
-            <div><dt>Срок стройки</dt><dd id="term">5 месяцев</dd></div>
-            <div><dt>За квадратный метр</dt><dd id="sqm">60 720 ₽</dd></div>
-          </dl>
-          <a class="btn btn--primary btn--arrow magnet calc__cta" href="#contact" id="calcCta"><span>Получить точную смету</span></a>
-          <button class="calc__share" type="button" id="calcShare">
-            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M8.5 11.5L11.5 8.5M7 9.5L5.2 11.3A2.8 2.8 0 0 0 9.2 15.3L11 13.5M13 10.5L14.8 8.7A2.8 2.8 0 0 0 10.8 4.7L9 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            <span>Поделиться расчётом</span>
-          </button>
-          <p class="vh" aria-live="polite" id="shareStatus"></p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ ЦИФРЫ ============ -->
-  <div class="nums-wrap">
-    <section class="nums" aria-labelledby="numsTitle">
-      <h2 class="vh" id="numsTitle">«Отвес» в цифрах</h2>
-      <div class="floaters" aria-hidden="true">
-        <svg class="fl" viewBox="0 0 48 48" style="left:3%;top:42%;width:80px" data-speed="1.4"><use href="#f-screw"/></svg>
-        <svg class="fl fl--d" viewBox="0 0 48 48" style="right:4%;top:38%;width:70px" data-speed="-1.1"><use href="#f-bolt"/></svg>
-        <svg class="fl fl--d" viewBox="0 0 48 48" style="left:52%;bottom:4%;width:96px" data-speed="0.9"><use href="#f-brick"/></svg>
-      </div>
-      <div class="nums__rows" aria-hidden="true">
-        <div class="nums__row nums__row--a">
-          <span>Ровно</span><i class="nums__sep"></i><span>Тепло</span><i class="nums__sep"></i><span>В&nbsp;срок</span><i class="nums__sep"></i><span>По&nbsp;смете</span><i class="nums__sep"></i>
-          <span>Ровно</span><i class="nums__sep"></i><span>Тепло</span><i class="nums__sep"></i><span>В&nbsp;срок</span><i class="nums__sep"></i><span>По&nbsp;смете</span><i class="nums__sep"></i>
-          <span>Ровно</span><i class="nums__sep"></i><span>Тепло</span><i class="nums__sep"></i><span>В&nbsp;срок</span><i class="nums__sep"></i><span>По&nbsp;смете</span><i class="nums__sep"></i>
-        </div>
-        <div class="nums__row nums__row--b">
-          <span>Газобетон</span><i class="nums__sep"></i><span>Кирпич</span><i class="nums__sep"></i><span>Брус</span><i class="nums__sep"></i><span>Каркас</span><i class="nums__sep"></i>
-          <span>Газобетон</span><i class="nums__sep"></i><span>Кирпич</span><i class="nums__sep"></i><span>Брус</span><i class="nums__sep"></i><span>Каркас</span><i class="nums__sep"></i>
-          <span>Газобетон</span><i class="nums__sep"></i><span>Кирпич</span><i class="nums__sep"></i><span>Брус</span><i class="nums__sep"></i><span>Каркас</span><i class="nums__sep"></i>
-        </div>
-      </div>
-      <div class="container nums__grid">
-        <div class="num">
-          <p class="num__v"><b data-to="312">312</b><span>домов</span></p>
-          <i class="num__ruler" aria-hidden="true"></i>
-          <p class="num__t">сдали под&nbsp;ключ с&nbsp;2012 года</p>
-        </div>
-        <div class="num">
-          <p class="num__v"><b data-to="20">20</b><span>недель</span></p>
-          <i class="num__ruler" aria-hidden="true"></i>
-          <p class="num__t">от&nbsp;чертежа до&nbsp;новоселья</p>
-        </div>
-        <div class="num">
-          <p class="num__v"><b data-to="10">10</b><span>лет</span></p>
-          <i class="num__ruler" aria-hidden="true"></i>
-          <p class="num__t">гарантии на&nbsp;фундамент, стены и&nbsp;кровлю</p>
-        </div>
-        <div class="num">
-          <p class="num__v"><b data-to="48">48</b><span>часов</span></p>
-          <i class="num__ruler" aria-hidden="true"></i>
-          <p class="num__t">на&nbsp;выезд по&nbsp;гарантийной заявке</p>
-        </div>
-      </div>
-      <div class="container nums__cta">
-        <p>Следующий дом может быть вашим. Инженер приедет на&nbsp;участок бесплатно.</p>
-        <a class="btn btn--primary btn--arrow" href="#contact"><span>Вызвать инженера</span></a>
-      </div>
-    </section>
-  </div>
-
-  <!-- ============ ГАРАНТИИ ============ -->
-  <section class="why" id="why">
-    <div class="why__photo" aria-hidden="true">
-      <img src="https://images.unsplash.com/photo-1676802540678-2dceb1820113?auto=format&fit=crop&q=70&w=1800" width="1800" height="1200" alt="" loading="lazy" decoding="async">
-    </div>
-    <div class="floaters" aria-hidden="true">
-      <svg class="fl fl--d" viewBox="0 0 48 48" style="right:3%;top:5%;width:90px" data-speed="1.3"><use href="#f-square"/></svg>
-      <svg class="fl" viewBox="0 0 48 48" style="right:22%;top:30%;width:60px" data-speed="-0.9"><use href="#f-cross"/></svg>
-      <svg class="fl fl--d" viewBox="0 0 48 48" style="left:2%;bottom:6%;width:76px" data-speed="1.1"><use href="#f-bolt"/></svg>
-    </div>
-    <div class="container">
-      <h2 class="eyebrow eyebrow--light"><span><span aria-hidden="true">Лист 04 · </span>Гарантии</span></h2>
-      <p class="why__statement">Мы отвечаем за&nbsp;дом деньгами, а&nbsp;не&nbsp;обещаниями. Всё, что ниже, записано в&nbsp;договоре.</p>
-
-      <ul class="why__list">
-        <li class="why__item">
-          <svg class="why__icon" viewBox="0 0 48 48" aria-hidden="true"><path class="ic" d="M12 6H30L38 14V42H12Z"/><path class="ic" d="M30 6V14H38"/><path class="ic" d="M18 22H32M18 28H26"/><path class="ic" d="M26 34H40V44H26Z"/><path class="ic" d="M29 34V31A4 4 0 0 1 37 31V34"/></svg>
-          <h3>Смета не&nbsp;растёт</h3>
-          <p>Цена в&nbsp;договоре окончательная. Если мы ошиблись в&nbsp;расчёте, разницу оплачиваем сами.</p>
-        </li>
-        <li class="why__item">
-          <svg class="why__icon" viewBox="0 0 48 48" aria-hidden="true"><path class="ic" d="M4 42H14V34H24V26H34V18H44"/><path class="ic" d="M40 18V6L46 9L40 12"/></svg>
-          <h3>Оплата по&nbsp;этапам</h3>
-          <p>Платите за&nbsp;готовый этап после приёмки, а&nbsp;не&nbsp;вперёд за&nbsp;весь дом. Можно с&nbsp;ипотекой и&nbsp;маткапиталом.</p>
-        </li>
-        <li class="why__item">
-          <svg class="why__icon" viewBox="0 0 48 48" aria-hidden="true"><path class="ic" d="M15 4H33A3 3 0 0 1 36 7V41A3 3 0 0 1 33 44H15A3 3 0 0 1 12 41V7A3 3 0 0 1 15 4Z"/><path class="ic" d="M18 19H27V29H18Z"/><path class="ic" d="M27 22L31 19V29L27 26"/><path class="ic" d="M21 38H27"/></svg>
-          <h3>Стройка в&nbsp;телефоне</h3>
-          <p>На&nbsp;участке работает камера, смотреть можно в&nbsp;любое время. По&nbsp;пятницам присылаем отчёт с&nbsp;фото в&nbsp;мессенджер.</p>
-        </li>
-        <li class="why__item">
-          <svg class="why__icon" viewBox="0 0 48 48" aria-hidden="true"><path class="ic" d="M24 4L40 10V22C40 32 33 40 24 44C15 40 8 32 8 22V10Z"/><path class="ic" d="M17 24L22 29L31 19"/></svg>
-          <h3>10 лет гарантии</h3>
-          <p>На&nbsp;фундамент, стены и&nbsp;кровлю. По&nbsp;гарантийной заявке приезжаем в&nbsp;течение 48&nbsp;часов.</p>
-        </li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- ============ ВОПРОСЫ ============ -->
-  <section class="faq" id="faq">
-    <div class="container faq__grid">
-      <div class="faq__head">
-        <p class="eyebrow" aria-hidden="true">Лист 05 · Вопросы</p>
-        <h2 class="h2">Частые вопросы</h2>
-        <p>Собрали то, что спрашивают на&nbsp;первой встрече. Не&nbsp;нашли свой вопрос&nbsp;— позвоните, инженер ответит сразу.</p>
-        <a class="faq__call" href="tel:+73830000000">+7 383 000-00-00</a>
-      </div>
-      <div class="faq__list">
-        <details class="faq__item" name="faq" open>
-          <summary>Можно ли строить зимой?</summary>
-          <div class="faq__a"><p>Да, строим круглый год. Зимой бетон для фундамента прогреваем, кладку ведём на&nbsp;растворе с&nbsp;противоморозными добавками. Сроки из&nbsp;договора от&nbsp;сезона не&nbsp;меняются.</p></div>
-        </details>
-        <details class="faq__item" name="faq">
-          <summary>Может ли цена вырасти во&nbsp;время стройки?</summary>
-          <div class="faq__a"><p>Нет. Цена из&nbsp;сметы записана в&nbsp;договоре и&nbsp;не&nbsp;меняется до&nbsp;сдачи ключей. Смета меняется, только если вы&nbsp;сами решите что-то добавить: например, гараж или тёплый пол.</p></div>
-        </details>
-        <details class="faq__item" name="faq">
-          <summary>Можно ли построить дом в&nbsp;ипотеку?</summary>
-          <div class="faq__a"><p>Да. Договор подходит для ипотеки на&nbsp;строительство и&nbsp;для материнского капитала. Подскажем, какие документы нужны банку, и&nbsp;подготовим смету в&nbsp;нужном виде.</p></div>
-        </details>
-        <details class="faq__item" name="faq">
-          <summary>Сколько стоят выезд и&nbsp;проект?</summary>
-          <div class="faq__a"><p>Выезд инженера по&nbsp;Новосибирску и&nbsp;области бесплатный. Проект тоже бесплатный, если строительство заказываете у&nbsp;нас.</p></div>
-        </details>
-        <details class="faq__item" name="faq">
-          <summary>Как следить за&nbsp;стройкой из&nbsp;другого города?</summary>
-          <div class="faq__a"><p>На&nbsp;участке работает камера, смотреть можно с&nbsp;телефона в&nbsp;любое время. Каждую пятницу присылаем отчёт с&nbsp;фото и&nbsp;видео. Принимать этапы можно по&nbsp;видеосвязи.</p></div>
-        </details>
-        <details class="faq__item" name="faq">
-          <summary>Что, если после сдачи что-то сломается?</summary>
-          <div class="faq__a"><p>На&nbsp;фундамент, стены и&nbsp;кровлю даём гарантию 10&nbsp;лет. По&nbsp;гарантийной заявке приезжаем в&nbsp;течение 48&nbsp;часов и&nbsp;исправляем за&nbsp;свой счёт.</p></div>
-        </details>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ ЗАЯВКА ============ -->
-  <section class="contact" id="contact">
-    <div class="floaters" aria-hidden="true">
-      <svg class="fl fl--d" viewBox="0 0 48 48" style="left:2%;top:4%;width:70px" data-speed="-1.2"><use href="#f-level"/></svg>
-      <svg class="fl" viewBox="0 0 48 48" style="left:34%;bottom:6%;width:84px" data-speed="1.4"><use href="#f-brick"/></svg>
-      <svg class="fl fl--d" viewBox="0 0 48 48" style="left:44%;top:10%;width:54px" data-speed="0.8"><use href="#f-screw"/></svg>
-    </div>
-    <div class="container contact__grid">
-      <div class="contact__text">
-        <p class="eyebrow" aria-hidden="true">Лист 06 · Заявка</p>
-        <h2 class="h2">Приедем на&nbsp;участок и&nbsp;посчитаем дом</h2>
-        <p>Выезд инженера по&nbsp;Новосибирску и&nbsp;области бесплатный. На&nbsp;следующий день пришлём смету, которую закрепим в&nbsp;договоре.</p>
-        <ol class="after" aria-label="Что будет после заявки">
-          <li><b>15&nbsp;минут</b><span>Перезвоним и&nbsp;уточним, что хотите построить</span></li>
-          <li><b>1–3&nbsp;дня</b><span>Инженер приедет на&nbsp;участок и&nbsp;проверит грунт</span></li>
-          <li><b>Следующий день</b><span>Пришлём смету с&nbsp;ценой для договора</span></li>
-        </ol>
-        <ul class="contact__ways">
-          <li><a href="tel:+73830000000">+7 383 000-00-00</a><span>ежедневно с&nbsp;9 до&nbsp;21</span></li>
-          <li><b>Новосибирск, ул.&nbsp;Кирпичная,&nbsp;12</b><span>офис и&nbsp;выставка материалов</span></li>
-        </ul>
-      </div>
-
-      <div class="contact__rig">
-        <div class="rig__top" aria-hidden="true">
-          <i class="rig__cable"></i>
-          <svg class="rig__hook" viewBox="0 0 40 46"><path d="M20 0V12M12 12H28M20 12V26C20 36 32 36 32 26" fill="none" stroke="#17191C" stroke-width="4" stroke-linecap="round"/></svg>
-          <svg class="rig__slings" viewBox="0 0 100 40" preserveAspectRatio="none"><path d="M50 2L2 40M50 2L98 40" fill="none" stroke="#17191C" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>
-        </div>
-
-        <div class="card">
-          <form class="lead" id="leadForm" novalidate>
-            <h3 class="lead__title">Бесплатный расчёт дома</h3>
-            <div class="lead__field">
-              <label for="fName">Как к&nbsp;вам обращаться</label>
-              <input id="fName" name="name" type="text" autocomplete="name" required>
-              <p class="lead__err" id="errName" hidden>Напишите, как к&nbsp;вам обращаться</p>
-            </div>
-            <div class="lead__field">
-              <label for="fPhone">Телефон <span>— только для звонка инженера</span></label>
-              <input id="fPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+7 (___) ___-__-__" required>
-              <p class="lead__err" id="errPhone" hidden>Проверьте номер: нужно 10&nbsp;цифр после +7</p>
-            </div>
-            <div class="lead__field">
-              <label for="fMsg">Что хотите построить <span>необязательно</span></label>
-              <textarea id="fMsg" name="message" rows="3" placeholder="Например: дом 140 м² из газобетона, участок в Мочище…"></textarea>
-            </div>
-            <label class="lead__check">
-              <input id="fAgree" type="checkbox" name="agree" required>
-              <span>Согласен на&nbsp;обработку персональных данных, чтобы со&nbsp;мной связались по&nbsp;заявке</span>
-            </label>
-            <p class="lead__err" id="errAgree" hidden>Отметьте согласие, чтобы мы могли перезвонить</p>
-            <button class="btn btn--primary lead__submit" type="submit"><span>Получить расчёт</span></button>
-            <p class="lead__note">Перезвоним за&nbsp;15&nbsp;минут с&nbsp;9 до&nbsp;21. Без рассылок и&nbsp;спама.</p>
-          </form>
-
-          <div class="lead__done" id="leadDone" hidden tabindex="-1">
-            <h3 class="lead__title">Заявка у&nbsp;нас</h3>
-            <p>Инженер перезвонит в&nbsp;течение 15&nbsp;минут, если сейчас с&nbsp;9 до&nbsp;21. Если позже&nbsp;— утром.</p>
-            <p class="lead__demo">Это демо-сайт: заявка никуда не&nbsp;отправлена.</p>
-            <button class="btn btn--ghost-dark" type="button" id="leadAgain"><span>Отправить ещё одну</span></button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-</main>
-
-<footer class="footer">
-  <div class="container footer__grid">
-    <div class="footer__about">
-      <a class="logo logo--footer" href="#top" aria-label="Отвес — наверх">
-        <svg class="logo__mark" viewBox="0 0 24 34" aria-hidden="true">
-          <path d="M4 1.5H20" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
-          <g class="logo__bob"><path d="M12 2V14" stroke="currentColor" stroke-width="1.6"/><path d="M6 14H18L12 32Z" fill="#FFB800"/></g>
-        </svg>
-        <span class="logo__word" translate="no">Отвес</span>
+  <div class="side">
+    <header class="top">
+      <a class="logo" href="./" aria-label="Отвес, на главную">
+        <svg class="logo-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M8 6h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M16 6v8" stroke="currentColor" stroke-width="1.6"/><path d="M10 14h12l-6 14z" fill="#FFB800"/></svg>
+        <span class="logo-word">Отвес</span>
       </a>
-      <p>Строим частные дома в&nbsp;Новосибирске и&nbsp;области с&nbsp;2012 года.</p>
+      <p class="tagline">Находит местные бизнесы без своего сайта</p>
+      <div class="tabs" role="tablist" aria-label="Разделы">
+        <button class="tab" role="tab" id="tabSearch" aria-selected="true" aria-controls="viewSearch" data-view="search">Поиск</button>
+        <button class="tab" role="tab" id="tabLeads" aria-selected="false" aria-controls="viewLeads" data-view="leads" tabindex="-1">Мои лиды <span class="tab-count" id="leadCount">0</span></button>
+      </div>
+    </header>
+
+    <section class="controls" id="controls" aria-label="Параметры поиска">
+      <form class="city" id="cityForm" autocomplete="off">
+        <label class="field-label" for="cityInput">Город или район</label>
+        <div class="city-row">
+          <input class="input" id="cityInput" name="city" type="search" placeholder="Например, Новосибирск" enterkeyhint="search">
+          <button class="btn btn-quiet" type="submit">Показать</button>
+        </div>
+      </form>
+
+      <fieldset class="cats">
+        <legend class="field-label">Кого ищем</legend>
+        <div class="chips" id="cats"></div>
+      </fieldset>
+
+      <button class="btn btn-main" id="searchBtn" type="button">Искать на видимой части карты</button>
+      <p class="hint" id="hint" aria-live="polite"></p>
+    </section>
+
+    <div class="map-wrap" id="mapWrap">
+      <div class="map" id="map" role="region" aria-label="Карта с найденными бизнесами"></div>
+      <button class="here" id="hereBtn" type="button" hidden>Искать здесь</button>
+      <div class="loader" id="loader" hidden>
+        <span class="loader-bob" aria-hidden="true"></span>
+        <span id="loaderText">Ищу…</span>
+        <span class="loader-secs" id="loaderSecs"></span>
+      </div>
     </div>
-    <nav class="footer__nav" aria-label="Разделы в подвале">
-      <a href="#build">Как строим</a>
-      <a href="#projects">Проекты</a>
-      <a href="#calc">Цены</a>
-      <a href="#why">Гарантии</a>
-      <a href="#faq">Вопросы</a>
-    </nav>
-    <div class="footer__contacts">
-      <a href="tel:+73830000000">+7 383 000-00-00</a>
-      <span>ул.&nbsp;Кирпичная,&nbsp;12, Новосибирск</span>
-      <span>Ежедневно с&nbsp;9 до&nbsp;21</span>
-    </div>
+
+    <section class="view" id="viewSearch" role="tabpanel" aria-labelledby="tabSearch">
+      <div class="notice" id="notice" role="status" hidden></div>
+
+      <div class="results" id="results" hidden>
+        <div class="summary">
+          <p class="summary-main"><span class="summary-num" id="sumTargets">0</span> <span id="sumLabel">без своего сайта</span></p>
+          <div class="meter" aria-hidden="true"><i id="meterFill"></i></div>
+          <p class="summary-sub" id="sumSub"></p>
+        </div>
+
+        <div class="filters" aria-label="Фильтры">
+          <label class="check"><input type="checkbox" id="fPhone"><span>Только с телефоном</span></label>
+          <label class="check"><input type="checkbox" id="fChains" checked><span>Скрыть сети</span></label>
+          <label class="check"><input type="checkbox" id="fSites"><span>Показать с сайтом</span></label>
+          <label class="select-wrap">
+            <span class="sr-only">Статус</span>
+            <select class="select" id="fStatus">
+              <option value="all">Все статусы</option>
+              <option value="new">Только новые</option>
+              <option value="work">В работе</option>
+            </select>
+          </label>
+        </div>
+
+        <ol class="list" id="list"></ol>
+        <button class="btn btn-quiet more" id="moreBtn" type="button" hidden>Показать ещё</button>
+      </div>
+
+      <details class="howto" id="howto">
+        <summary>Как пользоваться</summary>
+        <ol>
+          <li>Найдите город, выберите, кого ищем, и нажмите «Искать». Большой город лучше смотреть по районам.</li>
+          <li>Проверьте каждого по кнопкам «Яндекс Карты» и «2ГИС». В OpenStreetMap сайт мог просто не попасть.</li>
+          <li>Ставьте статус. Список хранится в этом браузере, во вкладке «Мои лиды» его можно скачать для Excel.</li>
+          <li>Пишите и звоните каждому лично. Одинаковая рассылка по SMS и почте без согласия нарушает закон о рекламе.</li>
+        </ol>
+      </details>
+    </section>
+
+    <section class="view" id="viewLeads" role="tabpanel" aria-labelledby="tabLeads" hidden>
+      <div class="leads-head">
+        <p class="leads-sum" id="leadsSum"></p>
+        <button class="btn btn-quiet" id="exportBtn" type="button">Скачать для Excel</button>
+      </div>
+      <p class="leads-tip">Сюда попадает каждый, кому вы поставили статус или написали заметку. Чтобы убрать из списка, верните статус «Новый».</p>
+      <ol class="list" id="leadList"></ol>
+      <p class="empty" id="leadsEmpty" hidden>Пока пусто. Найдите бизнесы на вкладке «Поиск» и поставьте статус тем, кто вам интересен.</p>
+    </section>
+
+    <footer class="foot">
+      <p>Данные: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">участники OpenStreetMap</a>, карта <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>. Если сайта нет в OpenStreetMap, это ещё не значит, что его нет совсем.</p>
+    </footer>
   </div>
-  <div class="footer__word" aria-hidden="true" translate="no"><span>О</span><span>т</span><span>в</span><span>е</span><span>с</span></div>
-  <div class="container footer__bottom">
-    <span>© 2026 «Отвес»</span>
-    <a class="footer__top" href="#top">Наверх
-      <svg viewBox="0 0 12 14" aria-hidden="true"><path d="M6 13V2M1.5 6.5L6 2L10.5 6.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </a>
-    <button class="footer__motion" type="button" data-motion-toggle hidden></button>
-    <span>Демо-сайт: компания вымышленная, цены примерные. Фото: <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a>.</span>
-  </div>
-</footer>
-
-<button class="motion-toggle" type="button" data-motion-toggle hidden></button>
-
-<!-- Нижняя панель на телефоне: позвонить или оставить заявку в одно касание -->
-<div class="mbar" aria-label="Быстрая связь" role="region">
-  <a class="mbar__call" href="tel:+73830000000">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3H9L11 8L8.5 9.5C9.6 11.8 12.2 14.4 14.5 15.5L16 13L21 15V19C21 20.1 20.1 21 19 21C10.2 20.4 3.6 13.8 3 5C3 3.9 3.9 3 5 3Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-    Позвонить
-  </a>
-  <a class="mbar__cta" href="#contact">
-    <span class="mbar__lbl">Получить смету</span>
-    <span class="mbar__price" aria-hidden="true"><small>Ваш дом</small><b id="mbarPrice">≈ 8,5 млн ₽</b></span>
-  </a>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
-<script src="script.js?v=5"></script>
 </body>
 </html>
