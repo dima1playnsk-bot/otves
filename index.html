@@ -3,13 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Отвес — бизнесы без сайта на карте</title>
-  <meta name="description" content="Показывает на карте парикмахерские, кафе, автосервисы и другие местные бизнесы, у которых нет своего сайта. Данные OpenStreetMap.">
-  <meta name="theme-color" content="#142B66">
+  <title>Отвес — бизнесы без сайта</title>
+  <meta name="description" content="Бизнесы Новосибирска без своего сайта на карте. Данные OpenStreetMap.">
+  <meta name="theme-color" content="#121316">
+  <meta name="color-scheme" content="dark">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=Unbounded:wght@600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.css">
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js" defer></script>
@@ -18,97 +19,55 @@
 <body>
   <div class="side">
     <header class="top">
-      <a class="logo" href="./" aria-label="Отвес, на главную">
-        <svg class="logo-mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M8 6h16" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><path d="M16 6v8" stroke="currentColor" stroke-width="1.6"/><path d="M10 14h12l-6 14z" fill="#FFB800"/></svg>
-        <span class="logo-word">Отвес</span>
-      </a>
-      <p class="tagline">Находит местные бизнесы без своего сайта</p>
+      <span class="logo">Отвес</span>
       <div class="tabs" role="tablist" aria-label="Разделы">
         <button class="tab" role="tab" id="tabSearch" aria-selected="true" aria-controls="viewSearch" data-view="search">Поиск</button>
-        <button class="tab" role="tab" id="tabLeads" aria-selected="false" aria-controls="viewLeads" data-view="leads" tabindex="-1">Мои лиды <span class="tab-count" id="leadCount">0</span></button>
+        <button class="tab" role="tab" id="tabLeads" aria-selected="false" aria-controls="viewLeads" data-view="leads" tabindex="-1">Лиды <span class="tab-count" id="leadCount">0</span></button>
       </div>
     </header>
 
-    <section class="controls" id="controls" aria-label="Параметры поиска">
-      <form class="city" id="cityForm" autocomplete="off">
-        <label class="field-label" for="cityInput">Город или район</label>
-        <div class="city-row">
-          <input class="input" id="cityInput" name="city" type="search" placeholder="Например, Новосибирск" enterkeyhint="search">
-          <button class="btn btn-quiet" type="submit">Показать</button>
-        </div>
-      </form>
-
-      <fieldset class="cats">
-        <legend class="field-label">Кого ищем</legend>
-        <div class="chips" id="cats"></div>
-      </fieldset>
-
-      <button class="btn btn-main" id="searchBtn" type="button">Искать на видимой части карты</button>
-      <p class="hint" id="hint" aria-live="polite"></p>
+    <section class="controls" id="controls" aria-label="Поиск">
+      <button class="btn-main" id="searchBtn" type="button">Искать</button>
+      <p class="status" id="status" aria-live="polite">Новосибирск</p>
     </section>
 
     <div class="map-wrap" id="mapWrap">
-      <div class="map" id="map" role="region" aria-label="Карта с найденными бизнесами"></div>
-      <button class="here" id="hereBtn" type="button" hidden>Искать здесь</button>
-      <div class="loader" id="loader" hidden>
-        <span class="loader-bob" aria-hidden="true"></span>
-        <span id="loaderText">Ищу…</span>
-        <span class="loader-secs" id="loaderSecs"></span>
-      </div>
+      <div class="map" id="map" role="region" aria-label="Карта"></div>
     </div>
 
     <section class="view" id="viewSearch" role="tabpanel" aria-labelledby="tabSearch">
-      <div class="notice" id="notice" role="status" hidden></div>
-
       <div class="results" id="results" hidden>
-        <div class="summary">
-          <p class="summary-main"><span class="summary-num" id="sumTargets">0</span> <span id="sumLabel">без своего сайта</span></p>
-          <div class="meter" aria-hidden="true"><i id="meterFill"></i></div>
-          <p class="summary-sub" id="sumSub"></p>
-        </div>
+        <p class="summary" id="summary"></p>
 
-        <div class="filters" aria-label="Фильтры">
-          <label class="check"><input type="checkbox" id="fPhone"><span>Только с телефоном</span></label>
-          <label class="check"><input type="checkbox" id="fChains" checked><span>Скрыть сети</span></label>
-          <label class="check"><input type="checkbox" id="fSites"><span>Показать с сайтом</span></label>
-          <label class="select-wrap">
-            <span class="sr-only">Статус</span>
-            <select class="select" id="fStatus">
-              <option value="all">Все статусы</option>
-              <option value="new">Только новые</option>
-              <option value="work">В работе</option>
-            </select>
-          </label>
+        <div class="chips" id="cats" aria-label="Виды бизнеса"></div>
+
+        <div class="filters">
+          <input class="input" id="fName" type="search" placeholder="Название" aria-label="Поиск по названию">
+          <label class="check"><input type="checkbox" id="fPhone"><span>С телефоном</span></label>
+          <label class="check"><input type="checkbox" id="fChains" checked><span>Без сетей</span></label>
+          <label class="check"><input type="checkbox" id="fSites"><span>С сайтом тоже</span></label>
+          <select class="select" id="fStatus" aria-label="Статус">
+            <option value="all">Все статусы</option>
+            <option value="new">Новые</option>
+            <option value="work">В работе</option>
+          </select>
         </div>
 
         <ol class="list" id="list"></ol>
-        <button class="btn btn-quiet more" id="moreBtn" type="button" hidden>Показать ещё</button>
+        <button class="btn more" id="moreBtn" type="button" hidden>Ещё</button>
       </div>
-
-      <details class="howto" id="howto">
-        <summary>Как пользоваться</summary>
-        <ol>
-          <li>Найдите город, выберите, кого ищем, и нажмите «Искать». Большой город лучше смотреть по районам.</li>
-          <li>Проверьте каждого по кнопкам «Яндекс Карты» и «2ГИС». В OpenStreetMap сайт мог просто не попасть.</li>
-          <li>Ставьте статус. Список хранится в этом браузере, во вкладке «Мои лиды» его можно скачать для Excel.</li>
-          <li>Пишите и звоните каждому лично. Одинаковая рассылка по SMS и почте без согласия нарушает закон о рекламе.</li>
-        </ol>
-      </details>
     </section>
 
     <section class="view" id="viewLeads" role="tabpanel" aria-labelledby="tabLeads" hidden>
       <div class="leads-head">
-        <p class="leads-sum" id="leadsSum"></p>
-        <button class="btn btn-quiet" id="exportBtn" type="button">Скачать для Excel</button>
+        <p class="summary" id="leadsSum"></p>
+        <button class="btn" id="exportBtn" type="button">Скачать CSV</button>
       </div>
-      <p class="leads-tip">Сюда попадает каждый, кому вы поставили статус или написали заметку. Чтобы убрать из списка, верните статус «Новый».</p>
       <ol class="list" id="leadList"></ol>
-      <p class="empty" id="leadsEmpty" hidden>Пока пусто. Найдите бизнесы на вкладке «Поиск» и поставьте статус тем, кто вам интересен.</p>
+      <p class="empty" id="leadsEmpty" hidden>Пусто. Поставьте статус бизнесу — он появится здесь.</p>
     </section>
 
-    <footer class="foot">
-      <p>Данные: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">участники OpenStreetMap</a>, карта <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>. Если сайта нет в OpenStreetMap, это ещё не значит, что его нет совсем.</p>
-    </footer>
+    <footer class="foot">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>. Сайт может быть, даже если его нет в OSM.</footer>
   </div>
 </body>
 </html>
