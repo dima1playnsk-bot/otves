@@ -15,13 +15,14 @@ for cid, (s, w, n, e) in CITIES.items():
     print(f'===== {cid}: мест {len(rows)}')
     print('колонки:', list(rows[0].keys()))
     print('пример:', json.dumps({k: v for k, v in rows[0].items() if k not in ('geometry', 'bbox', 'sources')}, ensure_ascii=False, default=str)[:1500])
-    cats = collections.Counter((r.get('categories') or {}).get('primary') for r in rows)
-    print('категории:', cats.most_common(200))
+    cats = collections.Counter((r.get('taxonomy') or {}).get('primary') for r in rows)
+    print('КАТ:', cats.most_common(300))
+    print('БАЗ:', collections.Counter(r.get('basic_category') for r in rows).most_common(80))
     if 'operating_status' in rows[0]:
         print('статусы:', collections.Counter(r.get('operating_status') for r in rows))
-    dance = [r for r in rows if 'danc' in json.dumps(r.get('categories') or {}) or 'танц' in ((r.get('names') or {}).get('primary') or '').lower()]
+    dance = [r for r in rows if 'danc' in json.dumps(r.get('taxonomy') or {}) or 'танц' in ((r.get('names') or {}).get('primary') or '').lower()]
     print(f'танцы: {len(dance)}')
     for r in dance[:60]:
-        print('  ', (r.get('names') or {}).get('primary'), '|', (r.get('categories') or {}).get('primary'), '|', r.get('websites'), '|', r.get('phones'), '|', r.get('confidence'), '|', r.get('operating_status'))
+        print('  ', (r.get('names') or {}).get('primary'), '|', (r.get('taxonomy') or {}).get('hierarchy'), '|', r.get('websites'), '|', r.get('phones'), '|', r.get('confidence'), '|', r.get('operating_status'))
     web = sum(1 for r in rows if r.get('websites'))
     print(f'с сайтом: {web}, с телефоном: {sum(1 for r in rows if r.get("phones"))}, с соцсетями: {sum(1 for r in rows if r.get("socials"))}')
