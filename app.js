@@ -188,7 +188,8 @@
     const site = classifySite(t.website || t['contact:website'] || t.url || t['contact:url'] || '');
     const socials = socialsOf(t, site);
     if (site.kind === 'none' && socials.length) site.label = 'Нет сайта, есть ' + socials[0].label;
-    const cat = catOf(t);
+    // У мест из Overture вид бизнеса уже определён скриптом (tags.cat).
+    const cat = (t.cat && CATS.find((c) => c.id === t.cat)) || catOf(t);
     return {
       id: el.type[0] + el.id,
       osm: el.type + '/' + el.id,
@@ -304,7 +305,7 @@
       state.loaded = true;
       state.shown = PAGE_SIZE;
       const d = new Date(data.updated);
-      setStatus(CITY.name + '. Данные OpenStreetMap от ' + d.toLocaleDateString('ru-RU') + '.');
+      setStatus(CITY.name + '. Данные OpenStreetMap и Overture от ' + d.toLocaleDateString('ru-RU') + '.');
       renderChips();
       render();
       if (mapReady) map.fitBounds([[b.w, b.s], [b.e, b.n]], { padding: 10, duration: 0 });
@@ -506,7 +507,7 @@
         <a class="act" href="${esc(yandexUrl(b))}" target="_blank" rel="noopener">Яндекс Карты</a>
         <a class="act" href="${esc(gisUrl(b))}" target="_blank" rel="noopener">2ГИС</a>
         <a class="act" href="${esc(webSearchUrl(b))}" target="_blank" rel="noopener">Найти сайт</a>
-        <a class="act" href="https://www.openstreetmap.org/${esc(b.osm)}" target="_blank" rel="noopener">OSM</a>
+        ${/^(node|way|relation)\//.test(b.osm) ? `<a class="act" href="https://www.openstreetmap.org/${esc(b.osm)}" target="_blank" rel="noopener">OSM</a>` : ''}
       </div>
       <div class="biz-work">
         <select class="status-select" data-act="status" aria-label="Статус">${options}</select>

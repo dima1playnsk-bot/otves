@@ -1,5 +1,5 @@
 // Скачивает из OpenStreetMap все бизнесы нужных видов по каждому городу
-// и сохраняет в data/<город>.json. Запускается GitHub Actions раз в день.
+// и сохраняет в data/<город>.osm.json (потом merge-overture.py добавляет Overture → data/<город>.json). Запускается GitHub Actions раз в день.
 // Сайт читает эти файлы, поэтому кнопка «Искать» срабатывает сразу.
 
 import { writeFile, mkdir } from 'node:fs/promises';
@@ -86,7 +86,7 @@ for (const [id, bboxArr] of Object.entries(CITIES)) {
     const lon = el.lon ?? el.center?.lon;
     return { type: el.type, id: el.id, lat: +lat.toFixed(6), lon: +lon.toFixed(6), tags };
   }).filter((e) => Number.isFinite(e.lat));
-  await writeFile(`data/${id}.json`, JSON.stringify({ updated: new Date().toISOString(), bbox: bboxArr, elements: out }));
+  await writeFile(`data/${id}.osm.json`, JSON.stringify({ updated: new Date().toISOString(), bbox: bboxArr, elements: out }));
   console.log(`[${id}] Сохранено`, out.length);
   ok++;
 }
