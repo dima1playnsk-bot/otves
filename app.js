@@ -25,7 +25,7 @@
   const CATS = [
     { id: 'hair', chip: 'Парикмахерские', one: 'Парикмахерская', q: [['shop', 'hairdresser']] },
     { id: 'beauty', chip: 'Салоны красоты', one: 'Салон красоты', q: [['shop', 'beauty']] },
-    { id: 'tattoo', chip: 'Тату', one: 'Тату-салон', q: [['shop', 'tattoo']] },
+    { id: 'tattoo', chip: 'Тату', find: 'тату салоны', one: 'Тату-салон', q: [['shop', 'tattoo']] },
     { id: 'massage', chip: 'Массаж', one: 'Массаж', q: [['shop', 'massage']] },
     { id: 'cafe', chip: 'Кафе', one: 'Кафе', q: [['amenity', 'cafe']] },
     { id: 'rest', chip: 'Рестораны', one: 'Ресторан', q: [['amenity', 'restaurant']] },
@@ -37,13 +37,14 @@
     { id: 'wash', chip: 'Автомойки', one: 'Автомойка', q: [['amenity', 'car_wash']] },
     { id: 'dent', chip: 'Стоматологии', one: 'Стоматология', q: [['amenity', 'dentist']] },
     { id: 'vet', chip: 'Ветклиники', one: 'Ветклиника', q: [['amenity', 'veterinary']] },
-    { id: 'pet', chip: 'Зоотовары', one: 'Зоотовары', q: [['shop', 'pet'], ['shop', 'pet_grooming']] },
-    { id: 'fit', chip: 'Фитнес', one: 'Фитнес', q: [['leisure', 'fitness_centre']] },
-    { id: 'repair', chip: 'Ремонт техники', one: 'Ремонт техники', q: [['craft', 'electronics_repair'], ['shop', 'mobile_phone']] },
+    { id: 'pet', chip: 'Зоотовары', find: 'зоомагазины', one: 'Зоотовары', q: [['shop', 'pet'], ['shop', 'pet_grooming']] },
+    { id: 'fit', chip: 'Фитнес', find: 'фитнес клубы', one: 'Фитнес', q: [['leisure', 'fitness_centre']] },
+    { id: 'repair', chip: 'Ремонт техники', find: 'ремонт телефонов', one: 'Ремонт техники', q: [['craft', 'electronics_repair'], ['shop', 'mobile_phone']] },
     { id: 'shoe', chip: 'Ремонт обуви', one: 'Ремонт обуви и одежды', q: [['craft', 'shoemaker'], ['shop', 'shoe_repair'], ['craft', 'tailor'], ['shop', 'tailor']] },
-    { id: 'clean', chip: 'Химчистки', one: 'Химчистка', q: [['shop', 'dry_cleaning'], ['shop', 'laundry']] },
+    { id: 'clean', chip: 'Химчистки', find: 'химчистки', one: 'Химчистка', q: [['shop', 'dry_cleaning'], ['shop', 'laundry']] },
     { id: 'photo', chip: 'Фотостудии', one: 'Фотостудия', q: [['craft', 'photographer'], ['shop', 'photo']] },
-    { id: 'dance', chip: 'Школы танцев', one: 'Школа танцев', q: [['amenity', 'dancing_school'], ['leisure', 'dance']] },
+    { id: 'dance', chip: 'Школы танцев', one: 'Школа танцев', find: 'школы танцев', q: [['amenity', 'dancing_school'], ['leisure', 'dance'], ['sport', 'dance']] },
+    { id: 'sport', chip: 'Спортклубы', one: 'Спортклуб', find: 'спортивные клубы', q: [['leisure', 'sports_centre'], ['leisure', 'sports_hall'], ['club', 'sport']] },
   ];
 
   const STATUSES = [
@@ -176,7 +177,9 @@
     .replace('24/7', 'круглосуточно')
     .replace(/\s*;\s*/g, '; ');
 
-  const catOf = (t) => CATS.find((c) => c.q.some(([k, v]) => t[k] === v));
+  // Танцы в спортзале или фитнесе всё равно считаем школой танцев.
+  const catOf = (t) => (/(^|;)\s*dance/.test(t.sport || '') ? CATS.find((c) => c.id === 'dance') : null)
+    || CATS.find((c) => c.q.some(([k, v]) => t[k] === v));
 
   function toBiz(el) {
     const t = el.tags || {};
@@ -519,6 +522,19 @@
     const counts = {};
     base.forEach((b) => { counts[b.catId] = (counts[b.catId] || 0) + 1; });
     const all = `<button type="button" class="chip" data-cat="" aria-pressed="${!state.cats.size}">Все${state.loaded ? `<span class="n">${base.length}</span>` : ''}</button>`;
+    // Когда выбран один вид — ссылки на полный список в 2ГИС и Яндекс Картах:
+    // в OpenStreetMap есть далеко не все бизнесы (например, школ танцев почти нет).
+    const ext = $('#extLinks');
+    const one = state.loaded && state.cats.size === 1 ? CATS.find((c) => state.cats.has(c.id)) : null;
+    if (one) {
+      const phrase = one.find || one.chip.toLowerCase();
+      ext.innerHTML = `Весь список «${esc(phrase)}» в городе:`
+        + ` <a class="act" href="https://2gis.ru/${CITY.id}/search/${encodeURIComponent(phrase)}" target="_blank" rel="noopener">2ГИС</a>`
+        + ` <a class="act" href="https://yandex.ru/maps/?text=${encodeURIComponent(phrase + ' ' + CITY.name)}" target="_blank" rel="noopener">Яндекс Карты</a>`;
+      ext.hidden = false;
+    } else {
+      ext.hidden = true;
+    }
     $('#cats').innerHTML = all + CATS.map((c) => `<button type="button" class="chip" data-cat="${c.id}" aria-pressed="${state.cats.has(c.id)}">${esc(c.chip)}${state.loaded ? `<span class="n">${counts[c.id] || 0}</span>` : ''}</button>`).join('');
   }
 

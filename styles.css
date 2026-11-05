@@ -351,3 +351,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .search-row { display: flex; gap: 8px; }
 .search-row .btn-main { flex: 1; }
 .city-select { height: 44px; padding: 0 10px; font-size: 14px; color: var(--text); background: var(--raise); }
+
+/* Ссылки на полный список вида бизнеса в 2ГИС и Яндексе */
+.ext { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; padding: 0 var(--pad) 12px; color: var(--muted); font-size: 12.5px; }

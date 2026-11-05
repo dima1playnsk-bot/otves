@@ -20,12 +20,13 @@ const TAGS = [
   ['leisure', 'fitness_centre'], ['craft', 'electronics_repair'], ['shop', 'mobile_phone'],
   ['craft', 'shoemaker'], ['shop', 'shoe_repair'], ['craft', 'tailor'], ['shop', 'tailor'],
   ['shop', 'dry_cleaning'], ['shop', 'laundry'], ['craft', 'photographer'], ['shop', 'photo'],
-  ['amenity', 'dancing_school'], ['leisure', 'dance'],
+  ['amenity', 'dancing_school'], ['leisure', 'dance'], ['sport', 'dance'],
+  ['leisure', 'sports_centre'], ['leisure', 'sports_hall'], ['club', 'sport'],
 ];
 
 // Оставляем только поля, которые нужны сайту, чтобы файл был маленьким.
 const KEEP = new Set([
-  'name', 'shop', 'amenity', 'craft', 'leisure',
+  'name', 'shop', 'amenity', 'craft', 'leisure', 'sport', 'club',
   'website', 'contact:website', 'url', 'contact:url',
   'phone', 'contact:phone', 'contact:mobile', 'mobile', 'email', 'contact:email',
   'contact:vk', 'vk', 'contact:telegram', 'telegram', 'contact:whatsapp', 'whatsapp',
