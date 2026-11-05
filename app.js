@@ -8,8 +8,11 @@
 (function () {
   // ---------- Настройки ----------
 
-  const CITY = { name: 'Новосибирск', bbox: { s: 54.80, w: 82.72, n: 55.20, e: 83.16 }, center: [82.93, 55.03], zoom: 11 };
-  const DATA_URL = 'data/novosibirsk.json';
+  // Должно совпадать с CITIES в scripts/fetch-data.mjs.
+  const CITIES = {
+    novosibirsk: { id: 'novosibirsk', name: 'Новосибирск', gen: 'Новосибирска', bbox: { s: 54.80, w: 82.72, n: 55.20, e: 83.16 }, center: [82.93, 55.03], zoom: 11 },
+    volgograd: { id: 'volgograd', name: 'Волгоград', gen: 'Волгограда', bbox: { s: 48.42, w: 44.20, n: 48.90, e: 44.68 }, center: [44.50, 48.70], zoom: 10 },
+  };
 
   const ENDPOINTS = [
     'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
@@ -40,6 +43,7 @@
     { id: 'shoe', chip: 'Ремонт обуви', one: 'Ремонт обуви и одежды', q: [['craft', 'shoemaker'], ['shop', 'shoe_repair'], ['craft', 'tailor'], ['shop', 'tailor']] },
     { id: 'clean', chip: 'Химчистки', one: 'Химчистка', q: [['shop', 'dry_cleaning'], ['shop', 'laundry']] },
     { id: 'photo', chip: 'Фотостудии', one: 'Фотостудия', q: [['craft', 'photographer'], ['shop', 'photo']] },
+    { id: 'dance', chip: 'Школы танцев', one: 'Школа танцев', q: [['amenity', 'dancing_school'], ['leisure', 'dance']] },
   ];
 
   const STATUSES = [
@@ -124,7 +128,8 @@
   };
   state.filters.name = '';
 
-  const saveState = () => store.set('otves.state.v2', { cats: [...state.cats], filters: state.filters });
+  let CITY = CITIES[saved.city] || CITIES.novosibirsk;
+  const saveState = () => store.set('otves.state.v2', { cats: [...state.cats], filters: state.filters, city: CITY.id });
   const saveLeads = () => store.set('otves.leads.v1', leads);
 
   // ---------- Разбор данных OpenStreetMap ----------
@@ -195,6 +200,7 @@
       hours: prettyHours(t.opening_hours),
       site,
       chain: Boolean(t.brand || t['brand:wikidata']),
+      cityName: CITY.name,
       lat, lon,
     };
   }
@@ -202,7 +208,7 @@
   // ---------- Загрузка ----------
 
   async function loadFile() {
-    const r = await fetch(DATA_URL, { cache: 'no-cache' });
+    const r = await fetch(`data/${CITY.id}.json`, { cache: 'no-cache' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json();
     if (!Array.isArray(j.elements) || !j.elements.length) throw new Error('пустой файл');
@@ -273,7 +279,7 @@
     let timer = 0;
     let data;
     try {
-      setStatus('Загружаю бизнесы Новосибирска…');
+      setStatus('Загружаю бизнесы ' + CITY.gen + '…');
       try {
         data = await loadFile();
       } catch (e) {
@@ -295,7 +301,7 @@
       state.loaded = true;
       state.shown = PAGE_SIZE;
       const d = new Date(data.updated);
-      setStatus('Новосибирск. Данные OpenStreetMap от ' + d.toLocaleDateString('ru-RU') + '.');
+      setStatus(CITY.name + '. Данные OpenStreetMap от ' + d.toLocaleDateString('ru-RU') + '.');
       renderChips();
       render();
       if (mapReady) map.fitBounds([[b.w, b.s], [b.e, b.n]], { padding: 10, duration: 0 });
@@ -442,7 +448,7 @@
 
   const yandexUrl = (b) => `https://yandex.ru/maps/?ll=${b.lon.toFixed(6)},${b.lat.toFixed(6)}&z=18&text=${encodeURIComponent(b.name)}`;
   const gisUrl = (b) => `https://2gis.ru/search/${encodeURIComponent(b.name)}?m=${b.lon.toFixed(6)}%2C${b.lat.toFixed(6)}%2F18`;
-  const webSearchUrl = (b) => `https://www.google.com/search?q=${encodeURIComponent(`${b.name} ${CITY.name} сайт`)}`;
+  const webSearchUrl = (b) => `https://www.google.com/search?q=${encodeURIComponent(`${b.name} ${b.cityName || CITY.name} сайт`)}`;
   const telHref = (p) => 'tel:' + p.replace(/[^\d+]/g, '');
 
   const ICON_VK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2.5 6.5h3.3c.4 3.3 1.9 5.5 3.4 6V6.5h3.1v3.6c1.4-.2 2.9-1.9 3.4-3.6h3.1c-.5 2.3-2.1 4-3.3 4.8 1.2.6 3.2 2.2 3.9 5.2h-3.4c-.6-1.9-2.1-3.3-3.7-3.5v3.5h-.4C6.3 16.5 2.8 12.6 2.5 6.5z"/></svg>';
@@ -450,7 +456,7 @@
 
   // Иконки ВК и Telegram: яркая — ссылка известна, тусклая — откроется поиск по названию.
   function socialIcons(b) {
-    const q = `${b.name} ${CITY.name}`;
+    const q = `${b.name} ${b.cityName || CITY.name}`;
     const vk = b.socials.find((s) => s.label === 'ВКонтакте');
     const tg = b.socials.find((s) => s.label === 'Telegram');
     const vkUrl = vk ? vk.url : 'https://vk.com/search/communities?q=' + encodeURIComponent(q);
@@ -719,6 +725,23 @@
 
   function bind() {
     $('#searchBtn').addEventListener('click', search);
+
+    // Смена города: перелетаем на него и сразу ищем.
+    const citySel = $('#citySel');
+    citySel.value = CITY.id;
+    setStatus(CITY.name);
+    citySel.addEventListener('change', () => {
+      if (state.loading) { citySel.value = CITY.id; return; }
+      CITY = CITIES[citySel.value];
+      saveState();
+      if (popup) popup.remove();
+      state.selected = null;
+      state.all = [];
+      state.loaded = false;
+      $('#searchBtn').textContent = 'Искать';
+      if (mapReady) map.jumpTo({ center: CITY.center, zoom: CITY.zoom });
+      search();
+    });
 
     $('#cats').addEventListener('click', (e) => {
       const chip = e.target.closest('.chip');

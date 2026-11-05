@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Отвес — бизнесы без сайта</title>
-  <meta name="description" content="Бизнесы Новосибирска без своего сайта на карте. Данные OpenStreetMap.">
+  <meta name="description" content="Бизнесы Новосибирска и Волгограда без своего сайта на карте. Данные OpenStreetMap.">
   <meta name="theme-color" content="#121316">
   <meta name="color-scheme" content="dark">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
@@ -12,9 +12,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.css">
-  <link rel="stylesheet" href="styles.css?v=nsk8">
+  <link rel="stylesheet" href="styles.css?v=nsk9">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js" defer></script>
-  <script src="app.js?v=nsk8" defer></script>
+  <script src="app.js?v=nsk9" defer></script>
 </head>
 <body>
   <div class="side">
@@ -27,8 +27,14 @@
     </header>
 
     <section class="controls" id="controls" aria-label="Поиск">
-      <button class="btn-main" id="searchBtn" type="button">Искать</button>
-      <p class="status" id="status" aria-live="polite">Новосибирск</p>
+      <div class="search-row">
+        <select class="select city-select" id="citySel" aria-label="Город">
+          <option value="novosibirsk">Новосибирск</option>
+          <option value="volgograd">Волгоград</option>
+        </select>
+        <button class="btn-main" id="searchBtn" type="button">Искать</button>
+      </div>
+      <p class="status" id="status" aria-live="polite"></p>
     </section>
 
     <div class="map-wrap" id="mapWrap">

@@ -1,11 +1,14 @@
-// Скачивает из OpenStreetMap все бизнесы Новосибирска нужных видов
-// и сохраняет в data/novosibirsk.json. Запускается GitHub Actions раз в день.
-// Сайт читает этот файл, поэтому кнопка «Искать» срабатывает сразу.
+// Скачивает из OpenStreetMap все бизнесы нужных видов по каждому городу
+// и сохраняет в data/<город>.json. Запускается GitHub Actions раз в день.
+// Сайт читает эти файлы, поэтому кнопка «Искать» срабатывает сразу.
 
 import { writeFile, mkdir } from 'node:fs/promises';
 
-// Новосибирск: юг, запад, север, восток.
-const BBOX = [54.80, 82.72, 55.20, 83.16];
+// Города: юг, запад, север, восток. Должно совпадать с CITIES в app.js.
+const CITIES = {
+  novosibirsk: [54.80, 82.72, 55.20, 83.16],
+  volgograd: [48.42, 44.20, 48.90, 44.68],
+};
 
 // Должно совпадать с CATS в app.js.
 const TAGS = [
@@ -17,6 +20,7 @@ const TAGS = [
   ['leisure', 'fitness_centre'], ['craft', 'electronics_repair'], ['shop', 'mobile_phone'],
   ['craft', 'shoemaker'], ['shop', 'shoe_repair'], ['craft', 'tailor'], ['shop', 'tailor'],
   ['shop', 'dry_cleaning'], ['shop', 'laundry'], ['craft', 'photographer'], ['shop', 'photo'],
+  ['amenity', 'dancing_school'], ['leisure', 'dance'],
 ];
 
 // Оставляем только поля, которые нужны сайту, чтобы файл был маленьким.
@@ -37,10 +41,7 @@ const ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
 ];
 
-const bbox = BBOX.join(',');
-const query = `[out:json][timeout:180];(${TAGS.map(([k, v]) => `nwr["${k}"="${v}"]["name"](${bbox});`).join('')});out center tags qt;`;
-
-async function ask(url) {
+async function ask(url, query) {
   const r = await fetch(url, {
     method: 'POST',
     body: new URLSearchParams({ data: query }),
@@ -49,37 +50,43 @@ async function ask(url) {
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const j = await r.json();
-  if (!Array.isArray(j.elements) || j.elements.length < 500) throw new Error(`мало данных: ${j.elements?.length}, ${j.remark || ''}`);
+  if (!Array.isArray(j.elements) || j.elements.length < 300) throw new Error(`мало данных: ${j.elements?.length}, ${j.remark || ''}`);
   return j.elements;
 }
 
-let elements = null;
-for (let round = 0; round < 3 && !elements; round++) {
-  for (const url of ENDPOINTS) {
-    try {
-      console.log('Спрашиваю', url);
-      elements = await ask(url);
-      console.log('Получено', elements.length);
-      break;
-    } catch (e) {
-      console.log('Не вышло:', e.message);
+async function fetchCity(id, bboxArr) {
+  const bbox = bboxArr.join(',');
+  const query = `[out:json][timeout:180];(${TAGS.map(([k, v]) => `nwr["${k}"="${v}"]["name"](${bbox});`).join('')});out center tags qt;`;
+  for (let round = 0; round < 3; round++) {
+    for (const url of ENDPOINTS) {
+      try {
+        console.log(`[${id}] Спрашиваю`, url);
+        const elements = await ask(url, query);
+        console.log(`[${id}] Получено`, elements.length);
+        return elements;
+      } catch (e) {
+        console.log(`[${id}] Не вышло:`, e.message);
+      }
     }
+    await new Promise((r) => setTimeout(r, 30000));
   }
-  if (!elements) await new Promise((r) => setTimeout(r, 30000));
+  return null;
 }
-if (!elements) {
-  console.error('Все серверы не ответили, файл не меняю.');
-  process.exit(1);
-}
-
-const out = elements.map((el) => {
-  const tags = {};
-  for (const [k, v] of Object.entries(el.tags || {})) if (KEEP.has(k)) tags[k] = v;
-  const lat = el.lat ?? el.center?.lat;
-  const lon = el.lon ?? el.center?.lon;
-  return { type: el.type, id: el.id, lat: +lat.toFixed(6), lon: +lon.toFixed(6), tags };
-}).filter((e) => Number.isFinite(e.lat));
 
 await mkdir('data', { recursive: true });
-await writeFile('data/novosibirsk.json', JSON.stringify({ updated: new Date().toISOString(), bbox: BBOX, elements: out }));
-console.log('Сохранено', out.length);
+let ok = 0;
+for (const [id, bboxArr] of Object.entries(CITIES)) {
+  const elements = await fetchCity(id, bboxArr);
+  if (!elements) { console.error(`[${id}] Все серверы не ответили, файл не меняю.`); continue; }
+  const out = elements.map((el) => {
+    const tags = {};
+    for (const [k, v] of Object.entries(el.tags || {})) if (KEEP.has(k)) tags[k] = v;
+    const lat = el.lat ?? el.center?.lat;
+    const lon = el.lon ?? el.center?.lon;
+    return { type: el.type, id: el.id, lat: +lat.toFixed(6), lon: +lon.toFixed(6), tags };
+  }).filter((e) => Number.isFinite(e.lat));
+  await writeFile(`data/${id}.json`, JSON.stringify({ updated: new Date().toISOString(), bbox: bboxArr, elements: out }));
+  console.log(`[${id}] Сохранено`, out.length);
+  ok++;
+}
+if (!ok) process.exit(1);
