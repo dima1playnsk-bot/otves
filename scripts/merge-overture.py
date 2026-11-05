@@ -49,7 +49,12 @@ def category(row):
     primary = tax.get('primary') or ''
     hierarchy = tax.get('hierarchy') or []
     name = (row.get('names') or {}).get('primary') or ''
-    if primary in ('dance_studio', 'dance_school') or (DANCE_NAME.search(name) and primary not in ('dance_club', 'shoe_store', 'clothing_store', 'sporting_goods_store')):
+    if primary in ('dance_studio', 'dance_school'):
+        return 'dance'
+    # По названию — только если категория не говорит о другом (кафе «...в танце», мост, магазин).
+    other = primary in CAT_MAP or primary.endswith('_restaurant') or primary.endswith('_store') or primary in (
+        'restaurant', 'dance_club', 'bridge', 'historic_site', 'monument', 'park', 'landmark_and_historical_building', 'music_venue', 'bar')
+    if DANCE_NAME.search(name) and not other:
         return 'dance'
     if primary in CAT_MAP:
         return CAT_MAP[primary]
