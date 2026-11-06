@@ -234,7 +234,7 @@
       chain: Boolean(t.brand || t['brand:wikidata']),
       cityName: CITY.name,
       src: t.src || 'osm',
-      upd: t.upd || '',
+      ds: t.ds || '',
       lat, lon,
     };
   }
@@ -506,12 +506,14 @@
       + `<option value="other"${cur === 'other' ? ' selected' : ''}>Другое</option>`;
   }
 
-  // Год данных Overture: если запись давно не обновлялась, адрес и телефон могли устареть.
+  // Откуда запись. Почти всё в Overture пришло из страниц Facebook: там адрес и телефон
+  // часто старые (бизнес переехал, номер отдали другим). Дата в Overture — это дата их
+  // выпуска, а не свежесть данных, поэтому показываем источник.
   function dataAge(b) {
-    if (b.src !== 'overture' || !b.upd) return '';
-    const year = +b.upd.slice(0, 4);
-    const old = year && year < new Date().getFullYear() - 1;
-    return `<p class="biz-age${old ? ' old' : ''}">Данные Overture от ${year} г.${old ? ' Могли устареть, проверьте в 2ГИС' : ''}</p>`;
+    if (b.src !== 'overture') return '';
+    if (/meta/i.test(b.ds || '')) return '<p class="biz-age old">Из Facebook: адрес и телефон могли устареть, сверьте в 2ГИС</p>';
+    if (/foursquare/i.test(b.ds || '')) return '<p class="biz-age">Из Foursquare</p>';
+    return '<p class="biz-age">Из Overture</p>';
   }
 
   function badgeOf(b, st) {
