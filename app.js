@@ -148,6 +148,19 @@
   if (!nums || typeof nums !== 'object') nums = {};
   const saveNums = () => store.set('otves.nums.v1', nums);
 
+  // Ручные исправления вида бизнеса: { id: 'hair' | 'other' | ... }.
+  let catFix = store.get('otves.catfix.v1', {});
+  if (!catFix || typeof catFix !== 'object') catFix = {};
+
+  function applyCatFix(b) {
+    const fix = catFix[b.id];
+    if (!fix) return b;
+    const c = CATS.find((x) => x.id === fix);
+    b.catId = c ? c.id : 'other';
+    b.cat = c ? c.one : '';
+    return b;
+  }
+
   // ---------- Разбор данных OpenStreetMap ----------
 
   function classifySite(raw) {
@@ -220,6 +233,8 @@
       site,
       chain: Boolean(t.brand || t['brand:wikidata']),
       cityName: CITY.name,
+      src: t.src || 'osm',
+      upd: t.upd || '',
       lat, lon,
     };
   }
@@ -309,7 +324,7 @@
       clearInterval(timer);
       const b = CITY.bbox;
       const seen = new Set();
-      state.all = data.elements.map(toBiz).filter((x) => {
+      state.all = data.elements.map(toBiz).map(applyCatFix).filter((x) => {
         if (x.lat == null || !x.name) return false;
         if (x.lat < b.s || x.lat > b.n || x.lon < b.w || x.lon > b.e) return false;
         const key = x.name.toLowerCase() + '|' + x.lat.toFixed(4) + '|' + x.lon.toFixed(4);
@@ -484,6 +499,21 @@
       + `<a class="soc${tg ? ' known' : ''}" href="${esc(tgUrl)}" target="_blank" rel="noopener" title="${tg ? 'Telegram' : 'Найти в Telegram'}" aria-label="${tg ? 'Telegram' : 'Найти в Telegram'}">${ICON_TG}</a>`;
   }
 
+  // Выбор вида бизнеса в карточке. «Другое» убирает бизнес из всех видов, кроме «Все».
+  function catOptions(b) {
+    const cur = b.catId || 'other';
+    return CATS.map((c) => `<option value="${c.id}"${c.id === cur ? ' selected' : ''}>${esc(c.one)}</option>`).join('')
+      + `<option value="other"${cur === 'other' ? ' selected' : ''}>Другое</option>`;
+  }
+
+  // Год данных Overture: если запись давно не обновлялась, адрес и телефон могли устареть.
+  function dataAge(b) {
+    if (b.src !== 'overture' || !b.upd) return '';
+    const year = +b.upd.slice(0, 4);
+    const old = year && year < new Date().getFullYear() - 1;
+    return `<p class="biz-age${old ? ' old' : ''}">Данные Overture от ${year} г.${old ? ' Могли устареть, проверьте в 2ГИС' : ''}</p>`;
+  }
+
   function badgeOf(b, st) {
     if (st === 'closed') return { kind: 'own', text: 'Не работает' };
     if (st === 'hassite') return { kind: 'own', text: 'Сайт есть' };
@@ -518,6 +548,7 @@
         </div>
       </div>
       <p class="biz-meta">${esc(meta)}</p>
+      ${dataAge(b)}
       ${contacts.length ? `<p class="biz-contacts">${contacts.join('')}</p>` : ''}
       ${b.hours ? `<p class="biz-hours">${esc(b.hours)}</p>` : ''}
       <div class="biz-actions">
@@ -529,6 +560,7 @@
       </div>
       <div class="biz-work">
         <select class="status-select" data-act="status" aria-label="Статус">${options}</select>
+        <select class="status-select" data-act="cat" aria-label="Вид бизнеса" title="Если вид определён неверно — выберите правильный">${catOptions(b)}</select>
         <button class="act" type="button" data-act="note">${note ? 'Изменить заметку' : 'Заметка'}</button>
         ${st === 'closed' ? '' : '<button class="act act-closed" type="button" data-act="closed">Не работает</button>'}
       </div>
@@ -687,7 +719,7 @@
     $('#leadsSum').innerHTML = leadsSummary();
     $('#exportBtn').disabled = !arr.length;
     $('#leadsEmpty').hidden = arr.length > 0;
-    $('#leadList').innerHTML = arr.map((l) => rowHtml(l.biz)).join('');
+    $('#leadList').innerHTML = arr.map((l) => rowHtml(applyCatFix(l.biz))).join('');
     renderLeadCount();
   }
 
@@ -790,6 +822,18 @@
       }
     });
     ul.addEventListener('change', (e) => {
+      const catSel = e.target.closest('select[data-act="cat"]');
+      if (catSel) {
+        const id = catSel.closest('.biz').dataset.id;
+        catFix[id] = catSel.value;
+        store.set('otves.catfix.v1', catFix);
+        const b = findBiz(id);
+        if (b) applyCatFix(b);
+        if (leads[id] && leads[id].biz) { applyCatFix(leads[id].biz); saveLeads(); }
+        if (state.view === 'leads') renderLeads(); else if (state.loaded) { renderChips(); render(); }
+        if (popupId === id) refreshPopup();
+        return;
+      }
       const sel = e.target.closest('select[data-act="status"]');
       if (!sel) return;
       const id = sel.closest('.biz').dataset.id;

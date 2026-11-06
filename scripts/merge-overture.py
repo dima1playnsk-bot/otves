@@ -50,8 +50,11 @@ CAT_MAP = {
     'martial_arts_club': 'sport', 'sport_league': 'sport', 'sports_club_and_league': 'sport', 'swimming_pool': 'sport',
 }
 NOT_RESTAURANT = {'fast_food_restaurant', 'burger_restaurant', 'hot_dog_restaurant', 'shawarma_restaurant'}
-# «танц» без «с» перед ним: иначе ловятся все «станции».
-DANCE_NAME = re.compile(r'(^|[^сc])танц|dance|хореограф|балет|pole|хип-?хоп|сальс|бачат|зумба|zumba', re.I)
+# Танцы по названию — только отдельным словом: иначе ловятся «станции»
+# и «ОколоТанцпола» (прокат светового оборудования).
+DANCE_NAME = re.compile(r'(^|[^а-яёa-z])(танц|dance|хореограф|балет|pole|хип-?хоп|сальс|бачат|зумба|zumba)', re.I)
+# Если в названии есть эти слова — это не школа танцев, даже со словом «танцы».
+NOT_DANCE_NAME = re.compile(r'салон|парикмахер|барбер|beauty|nail|маникюр|ногт|бров|ресниц|прокат|аренд|оборудован|магазин|одежд|обув|shop|store', re.I)
 
 
 def category(row):
@@ -64,7 +67,7 @@ def category(row):
     # По названию — только если категория не говорит о другом (кафе «...в танце», мост, магазин).
     other = primary in CAT_MAP or primary.endswith('_restaurant') or primary.endswith('_store') or primary in (
         'restaurant', 'dance_club', 'bridge', 'historic_site', 'monument', 'park', 'landmark_and_historical_building', 'music_venue', 'bar')
-    if DANCE_NAME.search(name) and not other:
+    if DANCE_NAME.search(name) and not NOT_DANCE_NAME.search(name) and not other:
         return 'dance'
     if primary in CAT_MAP:
         return CAT_MAP[primary]
@@ -124,6 +127,16 @@ def to_element(row):
     brand = row.get('brand') or {}
     if brand.get('wikidata') or ((brand.get('names') or {}).get('primary')):
         tags['brand'] = (brand.get('names') or {}).get('primary') or 'yes'
+    # Когда источник последний раз обновлял запись: старые данные (часто из Facebook)
+    # бывают с неверным адресом или чужим телефоном. Сайт показывает год в карточке.
+    srcs = row.get('sources') or []
+    times = [str(s.get('update_time'))[:7] for s in srcs if s and s.get('update_time')]
+    if times:
+        tags['upd'] = max(times)
+    datasets = sorted({str(s.get('dataset')) for s in srcs if s and s.get('dataset')})
+    if datasets:
+        tags['ds'] = ','.join(datasets)
+    tags['conf'] = round(row.get('confidence') or 0, 2)
     return {'type': 'overture', 'id': row['id'], 'lat': round(pt.y, 6), 'lon': round(pt.x, 6), 'tags': tags}
 
 
