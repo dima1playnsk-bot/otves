@@ -2,7 +2,7 @@
 // и сохраняет в data/<город>.osm.json (потом merge-overture.py добавляет Overture → data/<город>.json). Запускается GitHub Actions раз в день.
 // Сайт читает эти файлы, поэтому кнопка «Искать» срабатывает сразу.
 
-import { writeFile, mkdir } from 'node:fs/promises';
+import { writeFile, mkdir, readFile } from 'node:fs/promises';
 
 // Города: юг, запад, север, восток. Должно совпадать с CITIES в app.js.
 const CITIES = {
@@ -52,12 +52,17 @@ const ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
 ];
 
-async function ask(url, query) {
+// Серверы OSM часто перегружены. Чтобы задача не висела часами, на город даём
+// не больше 6 минут, на весь запуск — 60 минут. Не успели — город берёт только Overture.
+const CITY_BUDGET = 6 * 60 * 1000;
+const RUN_DEADLINE = Date.now() + 30 * 60 * 1000;
+
+async function ask(url, query, ms) {
   const r = await fetch(url, {
     method: 'POST',
     body: new URLSearchParams({ data: query }),
     headers: { 'User-Agent': 'otves-data-updater (github.com/dima1playnsk-bot/otves)' },
-    signal: AbortSignal.timeout(240000),
+    signal: AbortSignal.timeout(ms),
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const j = await r.json();
@@ -68,25 +73,41 @@ async function ask(url, query) {
 async function fetchCity(id, bboxArr) {
   const bbox = bboxArr.join(',');
   const query = `[out:json][timeout:180];(${TAGS.map(([k, v]) => `nwr["${k}"="${v}"]["name"](${bbox});`).join('')});out center tags qt;`;
+  const deadline = Math.min(Date.now() + CITY_BUDGET, RUN_DEADLINE);
   for (let round = 0; round < 3; round++) {
     for (const url of ENDPOINTS) {
+      const left = deadline - Date.now();
+      if (left < 20000) { console.log(`[${id}] Время на город вышло`); return null; }
       try {
         console.log(`[${id}] Спрашиваю`, url);
-        const elements = await ask(url, query);
+        const elements = await ask(url, query, Math.min(180000, left));
         console.log(`[${id}] Получено`, elements.length);
         return elements;
       } catch (e) {
         console.log(`[${id}] Не вышло:`, e.message);
       }
     }
-    await new Promise((r) => setTimeout(r, 30000));
+    await new Promise((r) => setTimeout(r, 15000));
   }
   return null;
 }
 
 await mkdir('data', { recursive: true });
+
+// Сначала города, где данных OSM нет или они самые старые: так за несколько
+// ежедневных запусков обновятся все, даже если серверы успевают не всё.
+async function osmAge(id) {
+  try {
+    const j = JSON.parse(await readFile(`data/${id}.osm.json`, 'utf8'));
+    return Date.parse(j.updated) || 0;
+  } catch (e) { return 0; }
+}
+const order = [];
+for (const [id, bboxArr] of Object.entries(CITIES)) order.push([id, bboxArr, await osmAge(id)]);
+order.sort((a, b) => a[2] - b[2]);
+
 let ok = 0;
-for (const [id, bboxArr] of Object.entries(CITIES)) {
+for (const [id, bboxArr] of order) {
   const elements = await fetchCity(id, bboxArr);
   if (!elements) { console.error(`[${id}] Все серверы не ответили, файл не меняю.`); continue; }
   const out = elements.map((el) => {
