@@ -12,6 +12,16 @@
   const CITIES = {
     novosibirsk: { id: 'novosibirsk', name: 'Новосибирск', gen: 'Новосибирска', bbox: { s: 54.80, w: 82.72, n: 55.20, e: 83.16 }, center: [82.93, 55.03], zoom: 11 },
     volgograd: { id: 'volgograd', name: 'Волгоград', gen: 'Волгограда', bbox: { s: 48.42, w: 44.20, n: 48.90, e: 44.68 }, center: [44.50, 48.70], zoom: 10 },
+    saratov: { id: 'saratov', name: 'Саратов', gen: 'Саратова', bbox: { s: 51.392, w: 45.805, n: 51.686, e: 46.21 }, center: [46.035, 51.53], zoom: 11 },
+    tyumen: { id: 'tyumen', name: 'Тюмень', gen: 'Тюмени', bbox: { s: 57.0, w: 65.265, n: 57.283, e: 65.816 }, center: [65.542, 57.154], zoom: 11 },
+    tolyatti: { id: 'tolyatti', name: 'Тольятти', gen: 'Тольятти', bbox: { s: 53.446, w: 49.147, n: 53.598, e: 49.777 }, center: [49.419, 53.51], zoom: 11 },
+    makhachkala: { id: 'makhachkala', name: 'Махачкала', gen: 'Махачкалы', bbox: { s: 42.859, w: 47.317, n: 43.18, e: 47.621 }, center: [47.505, 42.983], zoom: 11 },
+    barnaul: { id: 'barnaul', name: 'Барнаул', gen: 'Барнаула', bbox: { s: 53.186, w: 83.532, n: 53.482, e: 83.909 }, center: [83.779, 53.348], zoom: 11 },
+    izhevsk: { id: 'izhevsk', name: 'Ижевск', gen: 'Ижевска', bbox: { s: 56.716, w: 53.006, n: 57.005, e: 53.392 }, center: [53.198, 56.861], zoom: 11 },
+    khabarovsk: { id: 'khabarovsk', name: 'Хабаровск', gen: 'Хабаровска', bbox: { s: 48.326, w: 134.897, n: 48.604, e: 135.222 }, center: [135.076, 48.481], zoom: 11 },
+    ulyanovsk: { id: 'ulyanovsk', name: 'Ульяновск', gen: 'Ульяновска', bbox: { s: 54.199, w: 48.25, n: 54.417, e: 48.726 }, center: [48.403, 54.315], zoom: 11 },
+    irkutsk: { id: 'irkutsk', name: 'Иркутск', gen: 'Иркутска', bbox: { s: 52.209, w: 104.058, n: 52.422, e: 104.449 }, center: [104.28, 52.289], zoom: 11 },
+    vladivostok: { id: 'vladivostok', name: 'Владивосток', gen: 'Владивостока', bbox: { s: 43.057, w: 131.839, n: 43.29, e: 132.239 }, center: [131.886, 43.115], zoom: 11 },
   };
 
   const ENDPOINTS = [
@@ -528,11 +538,11 @@
 
   // ---------- Номера ----------
 
-  // «+7 (383) 221-99-73» → «83832219973». Добавочные цифры после основного номера отбрасываем.
+  // «+7 (383) 221-99-73» и «8 383 221 99 73» → «+73832219973». Добавочные цифры после номера отбрасываем.
   function normPhone(p) {
     let d = String(p).replace(/\D/g, '');
-    if (d.length >= 11 && (d[0] === '7' || d[0] === '8')) return '8' + d.slice(1, 11);
-    if (d.length === 10) return '8' + d;
+    if (d.length >= 11 && (d[0] === '7' || d[0] === '8')) return '+7' + d.slice(1, 11);
+    if (d.length === 10) return '+7' + d;
     return d.length >= 5 ? d : '';
   }
   const numPhones = (b) => [...new Set((b.phones || []).map(normPhone).filter(Boolean))];

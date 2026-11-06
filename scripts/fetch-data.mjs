@@ -8,6 +8,16 @@ import { writeFile, mkdir } from 'node:fs/promises';
 const CITIES = {
   novosibirsk: [54.80, 82.72, 55.20, 83.16],
   volgograd: [48.42, 44.20, 48.90, 44.68],
+  saratov: [51.392, 45.805, 51.686, 46.21],
+  tyumen: [57.0, 65.265, 57.283, 65.816],
+  tolyatti: [53.446, 49.147, 53.598, 49.777],
+  makhachkala: [42.859, 47.317, 43.18, 47.621],
+  barnaul: [53.186, 83.532, 53.482, 83.909],
+  izhevsk: [56.716, 53.006, 57.005, 53.392],
+  khabarovsk: [48.326, 134.897, 48.604, 135.222],
+  ulyanovsk: [54.199, 48.25, 54.417, 48.726],
+  irkutsk: [52.209, 104.058, 52.422, 104.449],
+  vladivostok: [43.057, 131.839, 43.29, 132.239],
 };
 
 // Должно совпадать с CATS в app.js.
@@ -51,7 +61,7 @@ async function ask(url, query) {
   });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   const j = await r.json();
-  if (!Array.isArray(j.elements) || j.elements.length < 300) throw new Error(`мало данных: ${j.elements?.length}, ${j.remark || ''}`);
+  if (!Array.isArray(j.elements) || j.elements.length < 30) throw new Error(`мало данных: ${j.elements?.length}, ${j.remark || ''}`);
   return j.elements;
 }
 
