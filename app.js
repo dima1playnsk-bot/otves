@@ -133,6 +133,11 @@
   const saveState = () => store.set('otves.state.v2', { cats: [...state.cats], filters: state.filters, city: CITY.id });
   const saveLeads = () => store.set('otves.leads.v1', leads);
 
+  // Список «Номера»: бизнесы, добавленные кнопкой «Добавить».
+  let nums = store.get('otves.nums.v1', {});
+  if (!nums || typeof nums !== 'object') nums = {};
+  const saveNums = () => store.set('otves.nums.v1', nums);
+
   // ---------- Разбор данных OpenStreetMap ----------
 
   function classifySite(raw) {
@@ -497,7 +502,10 @@
     return `<li class="biz${b.id === state.selected ? ' is-selected' : ''}${hasSite ? ' has-site' : ''}" data-id="${esc(b.id)}" data-status="${st}">
       <div class="biz-head">
         <h3 class="biz-name"><button type="button" data-act="locate">${esc(b.name)}</button></h3>
-        <span class="badge badge-${badge.kind}">${esc(badge.text)}</span>
+        <div class="biz-side">
+          <span class="badge badge-${badge.kind}">${esc(badge.text)}</span>
+          ${numButton(b)}
+        </div>
       </div>
       <p class="biz-meta">${esc(meta)}</p>
       ${contacts.length ? `<p class="biz-contacts">${contacts.join('')}</p>` : ''}
@@ -516,6 +524,94 @@
       </div>
       ${note ? `<p class="note-text">${esc(note)}</p>` : ''}
     </li>`;
+  }
+
+  // ---------- Номера ----------
+
+  // «+7 (383) 221-99-73» → «83832219973». Добавочные цифры после основного номера отбрасываем.
+  function normPhone(p) {
+    let d = String(p).replace(/\D/g, '');
+    if (d.length >= 11 && (d[0] === '7' || d[0] === '8')) return '8' + d.slice(1, 11);
+    if (d.length === 10) return '8' + d;
+    return d.length >= 5 ? d : '';
+  }
+  const numPhones = (b) => [...new Set((b.phones || []).map(normPhone).filter(Boolean))];
+
+  function numButton(b) {
+    if (!numPhones(b).length) return '<button class="btn-add" type="button" disabled title="У этого бизнеса нет телефона">Нет номера</button>';
+    return nums[b.id]
+      ? '<button class="btn-add is-added" type="button" data-act="num" title="Нажмите, чтобы убрать из номеров">Добавлено</button>'
+      : '<button class="btn-add" type="button" data-act="num">Добавить</button>';
+  }
+
+  function toggleNum(id) {
+    if (nums[id]) delete nums[id];
+    else {
+      const b = findBiz(id);
+      if (!b || !numPhones(b).length) return;
+      nums[id] = { id, name: b.name, cat: b.cat, addr: b.addr, cityName: b.cityName || CITY.name, phones: b.phones, added: Date.now() };
+    }
+    saveNums();
+    renderNumCount();
+    // Обновляем кнопку везде, где этот бизнес на экране: в списке, карточке на карте, лидах.
+    document.querySelectorAll(`.biz[data-id="${CSS.escape(id)}"] .btn-add`).forEach((btn) => {
+      const b = findBiz(id);
+      if (b) btn.outerHTML = numButton(b);
+    });
+    if (state.view === 'nums') renderNums();
+  }
+
+  function renderNumCount() {
+    const n = Object.keys(nums).length;
+    const el = $('#numCount');
+    el.textContent = n;
+    el.classList.toggle('has', n > 0);
+  }
+
+  function allNumbers() {
+    const out = [];
+    Object.values(nums).sort((a, b) => a.added - b.added)
+      .forEach((x) => numPhones(x).forEach((p) => { if (!out.includes(p)) out.push(p); }));
+    return out;
+  }
+
+  function renderNums() {
+    const arr = Object.values(nums).sort((a, b) => b.added - a.added);
+    const total = allNumbers().length;
+    $('#numsSum').innerHTML = arr.length ? `<b>${total}</b> ${plural(total, 'номер', 'номера', 'номеров')} от ${arr.length} ${plural(arr.length, 'бизнеса', 'бизнесов', 'бизнесов')}` : '';
+    $('#numsBtn').disabled = !arr.length;
+    $('#numsClear').hidden = !arr.length;
+    $('#numsEmpty').hidden = arr.length > 0;
+    $('#numList').innerHTML = arr.map((x) => `<li class="num-row" data-id="${esc(x.id)}">
+        <div>
+          <p class="num-name">${esc(x.name)}</p>
+          <p class="num-phones">${esc(numPhones(x).join(', '))}</p>
+        </div>
+        <button class="act" type="button" data-act="numdel">Убрать</button>
+      </li>`).join('');
+    renderNumCount();
+  }
+
+  // Файл: каждый номер с новой строки, без названий.
+  function downloadNums() {
+    const list = allNumbers();
+    if (!list.length) return;
+    const url = URL.createObjectURL(new Blob([list.join('\r\n') + '\r\n'], { type: 'text/plain;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `nomera-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  function plural(n, one, few, many) {
+    const a = Math.abs(n) % 100, b = a % 10;
+    if (a > 10 && a < 20) return many;
+    if (b > 1 && b < 5) return few;
+    if (b === 1) return one;
+    return many;
   }
 
   function renderChips() {
@@ -675,6 +771,7 @@
       const act = actEl && actEl.dataset.act;
       if (act === 'locate') select(li.dataset.id, inPopup ? 'popup' : 'list');
       if (act === 'note') toggleNote(li, actEl);
+      if (act === 'num') toggleNum(li.dataset.id);
       if (act === 'closed') {
         const id = li.dataset.id;
         updateLead(id, { status: 'closed' });
@@ -734,8 +831,10 @@
     });
     $('#viewSearch').hidden = view !== 'search';
     $('#viewLeads').hidden = view !== 'leads';
+    $('#viewNums').hidden = view !== 'nums';
     $('#controls').hidden = view !== 'search';
     if (view === 'leads') renderLeads();
+    else if (view === 'nums') renderNums();
     else if (state.loaded) render();
     if (map) map.resize();
   }
@@ -793,7 +892,9 @@
     document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => switchView(t.dataset.view)));
     $('.tabs').addEventListener('keydown', (e) => {
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-      const next = state.view === 'search' ? 'leads' : 'search';
+      const views = ['search', 'leads', 'nums'];
+      const i = views.indexOf(state.view);
+      const next = views[(i + (e.key === 'ArrowRight' ? 1 : views.length - 1)) % views.length];
       switchView(next);
       document.querySelector(`.tab[data-view="${next}"]`).focus();
     });
@@ -802,6 +903,21 @@
     bindList($('#list'));
     bindList($('#leadList'));
 
+    $('#numsBtn').addEventListener('click', downloadNums);
+    $('#numsClear').addEventListener('click', () => {
+      if (!window.confirm('Убрать все бизнесы из списка номеров?')) return;
+      nums = {};
+      saveNums();
+      renderNums();
+      document.querySelectorAll('.btn-add.is-added').forEach((btn) => { btn.outerHTML = '<button class="btn-add" type="button" data-act="num">Добавить</button>'; });
+    });
+    $('#numList').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-act="numdel"]');
+      if (!btn) return;
+      toggleNum(btn.closest('.num-row').dataset.id);
+      renderNums();
+    });
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && e.target.matches('textarea.note')) {
         saveNote(e.target.closest('.biz'), e.target.value);
@@ -809,6 +925,12 @@
     });
 
     window.addEventListener('storage', (e) => {
+      if (e.key === 'otves.nums.v1') {
+        nums = store.get('otves.nums.v1', {}) || {};
+        renderNumCount();
+        if (state.view === 'nums') renderNums(); else if (state.loaded) render();
+        return;
+      }
       if (e.key !== 'otves.leads.v1') return;
       leads = store.get('otves.leads.v1', {}) || {};
       renderLeadCount();
@@ -820,6 +942,7 @@
 
   renderChips();
   renderLeadCount();
+  renderNumCount();
   bind();
   initMap();
 })();

@@ -12,9 +12,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.css">
-  <link rel="stylesheet" href="styles.css?v=nsk11">
+  <link rel="stylesheet" href="styles.css?v=nsk12">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js" defer></script>
-  <script src="app.js?v=nsk11" defer></script>
+  <script src="app.js?v=nsk12" defer></script>
 </head>
 <body>
   <div class="side">
@@ -23,6 +23,7 @@
       <div class="tabs" role="tablist" aria-label="Разделы">
         <button class="tab" role="tab" id="tabSearch" aria-selected="true" aria-controls="viewSearch" data-view="search">Поиск</button>
         <button class="tab" role="tab" id="tabLeads" aria-selected="false" aria-controls="viewLeads" data-view="leads" tabindex="-1">Лиды <span class="tab-count" id="leadCount">0</span></button>
+        <button class="tab" role="tab" id="tabNums" aria-selected="false" aria-controls="viewNums" data-view="nums" tabindex="-1">Номера <span class="tab-count" id="numCount">0</span></button>
       </div>
     </header>
 
@@ -73,6 +74,16 @@
       </div>
       <ol class="list" id="leadList"></ol>
       <p class="empty" id="leadsEmpty" hidden>Пусто. Поставьте статус бизнесу — он появится здесь.</p>
+    </section>
+
+    <section class="view" id="viewNums" role="tabpanel" aria-labelledby="tabNums" hidden>
+      <div class="nums-head">
+        <p class="summary" id="numsSum"></p>
+        <button class="btn-main" id="numsBtn" type="button">Скачать номера .txt</button>
+        <button class="btn nums-clear" id="numsClear" type="button">Очистить</button>
+      </div>
+      <ol class="list" id="numList"></ol>
+      <p class="empty" id="numsEmpty" hidden>Пусто. Нажмите «Добавить» в карточке бизнеса — его номер появится здесь.</p>
     </section>
 
     <footer class="foot">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>, <a href="https://overturemaps.org" target="_blank" rel="noopener">Overture Maps</a>. Сайт может быть, даже если его нет в OSM.</footer>
