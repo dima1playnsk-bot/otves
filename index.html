@@ -12,9 +12,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.css">
-  <link rel="stylesheet" href="styles.css?v=nsk15">
+  <link rel="stylesheet" href="styles.css?v=nsk16">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js" defer></script>
-  <script src="app.js?v=nsk15" defer></script>
+  <script src="app.js?v=nsk16" defer></script>
 </head>
 <body>
   <div class="side">
@@ -64,6 +64,7 @@
           <label class="check"><input type="checkbox" id="fPhone"><span>С телефоном</span></label>
           <label class="check"><input type="checkbox" id="fChains" checked><span>Без сетей</span></label>
           <label class="check"><input type="checkbox" id="fSites"><span>С сайтом тоже</span></label>
+          <label class="check" title="Скрыть записи только из Facebook: у них чаще всего чужие телефоны"><input type="checkbox" id="fReliable"><span>Без Facebook</span></label>
           <select class="select" id="fStatus" aria-label="Статус">
             <option value="all">Все статусы</option>
             <option value="new">Новые</option>
@@ -96,7 +97,7 @@
       <p class="empty" id="numsEmpty" hidden>Пусто. Нажмите «Добавить» в карточке бизнеса — его номер появится здесь.</p>
     </section>
 
-    <footer class="foot">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>, <a href="https://overturemaps.org" target="_blank" rel="noopener">Overture Maps</a>. Сайт может быть, даже если его нет в OSM.</footer>
+    <footer class="foot">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>, <a href="https://overturemaps.org" target="_blank" rel="noopener">Overture Maps</a>, <a href="https://opensource.foursquare.com/os-places/" target="_blank" rel="noopener">Foursquare OS Places</a>. Сайт может быть, даже если его нет в OSM.</footer>
   </div>
 </body>
 </html>

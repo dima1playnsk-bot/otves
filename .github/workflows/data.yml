@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '0 2 * * *' # каждый день в 9:00 по Новосибирску
   workflow_dispatch:
+    inputs:
+      skip_osm:
+        description: 'Не качать OpenStreetMap (взять прошлые данные)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -19,11 +24,12 @@ jobs:
         with:
           node-version: 22
       - run: node scripts/fetch-data.mjs
+        if: ${{ !inputs.skip_osm }}
         continue-on-error: true
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install overturemaps
+      - run: pip install overturemaps duckdb
       - run: python scripts/merge-overture.py
       - name: Сохранить в репозиторий
         env:

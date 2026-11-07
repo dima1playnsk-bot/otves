@@ -4,7 +4,7 @@
 # Выход: data/<город>.json      (его читает сайт)
 # Дубли (похожее название в пределах 200 м) склеиваются в одну запись.
 
-import json, math, re, subprocess, sys
+import collections, json, math, re, subprocess, sys
 import pyarrow.parquet as pq
 from shapely import wkb
 
@@ -170,6 +170,7 @@ def merge(osm, extra):
         if twin:
             # Дополняем запись OSM тем, чего в ней нет (сайт, телефон, соцсети).
             t = twin['tags']
+            t['agree'] = 1  # бизнес есть в двух базах — это признак, что он настоящий
             for k, v in el['tags'].items():
                 if k in ('name', 'cat', 'src'):
                     continue
@@ -184,6 +185,108 @@ def merge(osm, extra):
             grid.setdefault((gy, gx), []).append(el)
             added += 1
     return added, merged
+
+
+# ---------- Foursquare Open Source Places (Apache 2.0) ----------
+# Публичное зеркало на Source Cooperative, выпуск 2025-02-06. У каждого места есть дата
+# последней проверки и дата закрытия. Сверка с 2ГИС (ноябрь 2026, Волгоград) показала:
+# OSM ~67% верных телефонов, Foursquare (проверено с 2024) ~50%, Overture из Facebook ~37%.
+FSQ_SRC = 's3://us-west-2.opendata.source.coop/fused/fsq-os-places/2025-02-06/places/*.parquet'
+FSQ_CAT = [  # порядок важен: сначала узкие категории
+    (r'Dance Studio', 'dance'), (r'Barbershop|Hair Salon', 'hair'), (r'Tattoo', 'tattoo'),
+    (r'Massage|\bSpa\b', 'massage'), (r'Nail Salon|Beauty Salon|Eyebrow|Waxing|Tanning|Health and Beauty', 'beauty'),
+    (r'Car Wash', 'wash'), (r'Tire', 'tyres'), (r'Automotive Repair|Automotive Service|Auto Workshop', 'car'),
+    (r'Dentist|Dental', 'dent'), (r'Veterinar', 'vet'), (r'\bPet ', 'pet'), (r'Yoga|Pilates|\bGym\b|Fitness', 'fit'),
+    (r'Martial Arts|Boxing|Sports Club|Swimming Pool', 'sport'), (r'Electronics Repair|Phone Repair|Computer Repair', 'repair'),
+    (r'Shoe Repair|Tailor', 'shoe'), (r'Laundry|Dry Clean', 'clean'), (r'Photograph', 'photo'), (r'Florist|Flower', 'flowers'),
+    (r'Bakery|Dessert|Pastry|Candy|Confection', 'bakery'),
+    (r'Fast Food|Burger|Pizzeria|Hot Dog|Shawarma|Food Truck|Sandwich', 'fast'), (r'Café|Coffee|Tea Room', 'cafe'),
+    (r'Restaurant|Steakhouse|Diner|Bistro', 'rest'),
+]
+
+
+def phone10(p):
+    d = re.sub(r'\D', '', str(p or ''))
+    return d[-10:] if len(d) >= 10 else ''
+
+
+def similar_n(a, b):
+    # a, b — уже нормализованные названия
+    return bool(a and b and (a in b or b in a or a[:6] == b[:6]))
+
+
+def fsq_enrich(cid, bbox, elements):
+    import duckdb
+    s, w, n, e = bbox
+    con = duckdb.connect()
+    con.execute("INSTALL httpfs; LOAD httpfs; SET s3_region='us-west-2'; SET s3_url_style='path';")
+    rows = con.execute(f"""
+        SELECT fsq_place_id, name, latitude, longitude, address, tel, website, instagram,
+               date_refreshed, date_closed, fsq_category_labels
+        FROM read_parquet('{FSQ_SRC}', union_by_name=true)
+        WHERE latitude BETWEEN {s} AND {n} AND longitude BETWEEN {w} AND {e} AND name IS NOT NULL
+    """).fetchall()
+    by_phone, grid = {}, {}
+    for el in elements:
+        t = el['tags']
+        nn = norm(t.get('name') or '')
+        for p in re.split(r'[;,]', (t.get('phone') or '') + ';' + (t.get('contact:phone') or '')):
+            if phone10(p):
+                by_phone.setdefault(phone10(p), []).append((el, nn))
+        grid.setdefault((round(el['lat'] / 0.005), round(el['lon'] / 0.005)), []).append((el, nn))
+    name_count = collections.Counter(norm(r[1]) for r in rows)
+    stats = collections.Counter()
+    for fid, name, lat, lon, addr, tel, site, insta, refreshed, closed_at, cats in rows:
+        refreshed = str(refreshed or '')[:7]
+        closed_at = str(closed_at or '')[:7]
+        here = {'lat': lat, 'lon': lon}
+        fn = norm(name)
+        twins = [o for o, on in by_phone.get(phone10(tel), []) if similar_n(on, fn)] if phone10(tel) else []
+        seen_ids = {id(o) for o in twins}
+        gy, gx = round(lat / 0.005), round(lon / 0.005)
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                for o, on in grid.get((gy + dy, gx + dx), []):
+                    if id(o) not in seen_ids and similar_n(on, fn) and dist_m(o, here) < 150:
+                        twins.append(o)
+                        seen_ids.add(id(o))
+        if twins:
+            for o in twins:
+                t = o['tags']
+                if closed_at:
+                    t['fsq_closed'] = closed_at
+                    stats['закрыто'] += 1
+                elif refreshed >= '2023':
+                    t['seen'] = max(t.get('seen', ''), refreshed)
+                    stats['подтверждено'] += 1
+            continue
+        # Номер совпал, а название другое, и запись свежая: номер, видимо, у другого бизнеса.
+        if phone10(tel) and not closed_at and refreshed >= '2023':
+            for o, _on in by_phone.get(phone10(tel), []):
+                o['tags'].setdefault('phone_owner', f'{name} ({refreshed[:4]})')
+                stats['номер у другого'] += 1
+        # Новое место: только свежее, открытое и нашего вида.
+        if closed_at or refreshed < '2024':
+            continue
+        label = ' | '.join(c or '' for c in (cats or []))
+        cat = next((c for rx, c in FSQ_CAT if re.search(rx, label)), None)
+        if not cat:
+            continue
+        tags = {'name': name, 'cat': cat, 'src': 'foursquare', 'seen': refreshed}
+        if tel:
+            tags['phone'] = tel
+        if site:
+            tags['website'] = site
+        if insta:
+            tags['contact:instagram'] = 'https://instagram.com/' + str(insta).lstrip('@')
+        if addr:
+            tags['addr:full'] = addr
+        if name_count[norm(name)] >= 3:
+            tags['brand'] = name  # одно название в 3+ местах города — сеть
+        el = {'type': 'foursquare', 'id': fid, 'lat': round(lat, 6), 'lon': round(lon, 6), 'tags': tags}
+        elements.append(el)
+        stats['новых'] += 1
+    print(f'[{cid}] Foursquare: мест {len(rows)}, ' + ', '.join(f'{k} {v}' for k, v in stats.items()))
 
 
 ok = 0
@@ -204,8 +307,12 @@ for cid, (s, w, n, e) in CITIES.items():
         print(f'[{cid}] OSM {len(elements) - added}, Overture подходящих {len(extra)}: новых {added}, склеено {merged}')
     except Exception as ex:  # Overture недоступен — оставляем только OSM.
         print(f'[{cid}] Overture не загрузился: {ex}')
+    try:
+        fsq_enrich(cid, (s, w, n, e), elements)
+    except Exception as ex:
+        print(f'[{cid}] Foursquare не загрузился: {ex}')
     base['elements'] = elements
-    base['sources'] = ['OpenStreetMap', 'Overture Maps']
+    base['sources'] = ['OpenStreetMap', 'Overture Maps', 'Foursquare Open Source Places']
     with open(f'data/{cid}.json', 'w', encoding='utf-8') as f:
         json.dump(base, f, ensure_ascii=False, separators=(',', ':'))
     ok += 1

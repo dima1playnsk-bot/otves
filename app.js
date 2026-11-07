@@ -129,7 +129,7 @@
 
   const state = {
     cats: new Set(Array.isArray(saved.cats) ? saved.cats : []), // пусто = все виды
-    filters: Object.assign({ phone: false, chains: true, sites: false, status: 'all', name: '' }, saved.filters || {}),
+    filters: Object.assign({ phone: false, chains: true, sites: false, reliable: false, status: 'all', name: '' }, saved.filters || {}),
     all: [],
     shown: PAGE_SIZE,
     selected: null,
@@ -235,6 +235,10 @@
       cityName: CITY.name,
       src: t.src || 'osm',
       ds: t.ds || '',
+      agree: Boolean(t.agree),
+      seen: t.seen || '',
+      fsqClosed: t.fsq_closed || '',
+      phoneOwner: t.phone_owner || '',
       lat, lon,
     };
   }
@@ -460,8 +464,11 @@
       b._target = isTarget(b);
       const st = statusOf(b.id);
       // Закрытые видны только в фильтре «Не работают».
-      if (f.status === 'closed') return st === 'closed';
-      if (st === 'closed') return false;
+      // Закрытые по данным Foursquare — тоже сюда.
+      const closed = st === 'closed' || (b.fsqClosed && st === 'new');
+      if (f.status === 'closed') return closed;
+      if (closed) return false;
+      if (f.reliable && reliability(b) >= 3) return false;
       if (!f.sites && !b._target) return false;
       if (f.chains && b.chain) return false;
       if (f.phone && !b.phones.length) return false;
@@ -476,6 +483,7 @@
     return baseList()
       .filter((b) => !state.cats.size || state.cats.has(b.catId))
       .sort((a, b) => (b._target - a._target)
+        || (reliability(a) - reliability(b))
         || ((b.phones.length > 0) - (a.phones.length > 0))
         || a.name.localeCompare(b.name, 'ru'));
   }
@@ -506,14 +514,29 @@
       + `<option value="other"${cur === 'other' ? ' selected' : ''}>Другое</option>`;
   }
 
-  // Откуда запись. Почти всё в Overture пришло из страниц Facebook: там адрес и телефон
-  // часто старые (бизнес переехал, номер отдали другим). Дата в Overture — это дата их
-  // выпуска, а не свежесть данных, поэтому показываем источник.
+  // Насколько можно верить записи. Сверка с 2ГИС (Волгоград, ноябрь 2026):
+  // верный телефон у OSM ~2/3, у Foursquare (проверено с 2024) ~1/2, у Overture из Facebook ~1/3.
+  // 0 — подтверждено свежей проверкой, 1 — есть в двух базах, 2 — OSM или Foursquare,
+  // 3 — только Facebook, 4 — номер, похоже, у другого бизнеса, 5 — закрыт.
+  function reliability(b) {
+    if (b.fsqClosed) return 5;
+    if (b.phoneOwner) return 4;
+    if (b.seen >= '2023') return 0;
+    if (b.agree) return 1;
+    if (b.src === 'overture' && /meta/i.test(b.ds || '')) return 3;
+    return 2;
+  }
+
+  // Пометки в карточке: откуда запись и можно ли ей верить.
   function dataAge(b) {
-    if (b.src !== 'overture') return '';
-    if (/meta/i.test(b.ds || '')) return '<p class="biz-age old">Из Facebook: адрес и телефон могли устареть, сверьте в 2ГИС</p>';
-    if (/foursquare/i.test(b.ds || '')) return '<p class="biz-age">Из Foursquare</p>';
-    return '<p class="biz-age">Из Overture</p>';
+    const notes = [];
+    if (b.fsqClosed) notes.push(['old', `По данным Foursquare закрыт (${b.fsqClosed})`]);
+    if (b.phoneOwner) notes.push(['old', `Номер в Foursquare у другого бизнеса: «${b.phoneOwner}»`]);
+    if (b.seen >= '2023') notes.push(['ok', `Подтверждено Foursquare: ${b.seen}`]);
+    else if (b.agree) notes.push(['ok', 'Есть в двух базах']);
+    if (b.src === 'overture' && /meta/i.test(b.ds || '') && !b.seen) notes.push(['old', 'Из Facebook: адрес и телефон могли устареть, сверьте в 2ГИС']);
+    else if (b.src === 'foursquare' && !b.seen) notes.push(['', 'Из Foursquare']);
+    return notes.map(([cls, text]) => `<p class="biz-age${cls ? ' ' + cls : ''}">${esc(text)}</p>`).join('');
   }
 
   function badgeOf(b, st) {
@@ -929,7 +952,7 @@
     });
 
     const refilter = () => { state.shown = PAGE_SIZE; saveState(); if (state.loaded) { renderChips(); render(); } };
-    [['fPhone', 'phone'], ['fChains', 'chains'], ['fSites', 'sites']].forEach(([elId, key]) => {
+    [['fPhone', 'phone'], ['fChains', 'chains'], ['fSites', 'sites'], ['fReliable', 'reliable']].forEach(([elId, key]) => {
       const el = $('#' + elId);
       el.checked = Boolean(state.filters[key]);
       el.addEventListener('change', () => { state.filters[key] = el.checked; refilter(); });
