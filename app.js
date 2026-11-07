@@ -701,7 +701,8 @@
       const phrase = one.find || one.chip.toLowerCase();
       ext.innerHTML = `Весь список «${esc(phrase)}» в городе:`
         + ` <a class="act" href="https://2gis.ru/${CITY.id}/search/${encodeURIComponent(phrase)}" target="_blank" rel="noopener">2ГИС</a>`
-        + ` <a class="act" href="https://yandex.ru/maps/?text=${encodeURIComponent(phrase + ' ' + CITY.name)}" target="_blank" rel="noopener">Яндекс Карты</a>`;
+        + ` <a class="act" href="https://yandex.ru/maps/?text=${encodeURIComponent(phrase + ' ' + CITY.name)}" target="_blank" rel="noopener">Яндекс Карты</a>`
+        + ` <a class="act" href="https://vk.com/search/communities?q=${encodeURIComponent(phrase + ' ' + CITY.name)}" target="_blank" rel="noopener" title="Сообщества ВК: их ведут сами владельцы, данные обычно свежие">ВКонтакте</a>`;
       ext.hidden = false;
     } else {
       ext.hidden = true;
