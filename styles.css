@@ -417,3 +417,19 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* Длинное название без пробелов не должно выталкивать кнопку «Добавить» за экран */
 .biz-head .biz-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+
+/* ---------- ВКонтакте ---------- */
+.vk-row { display: flex; gap: 8px; margin-top: 12px; }
+.btn-vk {
+  flex: 1;
+  height: 40px;
+  border: 0;
+  border-radius: var(--r);
+  background: #0077FF;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-vk:hover { filter: brightness(1.1); }
+.btn-vk:disabled { opacity: 0.5; cursor: progress; }
+.vk-out { height: 40px; }

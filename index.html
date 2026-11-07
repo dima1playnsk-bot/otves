@@ -12,9 +12,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.css">
-  <link rel="stylesheet" href="styles.css?v=nsk22">
+  <link rel="stylesheet" href="styles.css?v=nsk25">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.js" defer></script>
-  <script src="app.js?v=nsk22" defer></script>
+  <script src="app.js?v=nsk25" defer></script>
+  <script src="vk.js?v=nsk25" defer></script>
 </head>
 <body>
   <div class="side">
@@ -46,6 +47,11 @@
         <button class="btn-main" id="searchBtn" type="button">Искать</button>
       </div>
       <p class="status" id="status" aria-live="polite"></p>
+      <div class="vk-row">
+        <button class="btn-vk" id="vkBtn" type="button" title="Найти сообщества выбранного вида бизнеса в городе: адрес, телефон, дата последнего поста">Найти во ВКонтакте</button>
+        <button class="btn vk-out" id="vkOut" type="button" hidden>Выйти из ВК</button>
+      </div>
+      <p class="status" id="vkStatus" aria-live="polite"></p>
     </section>
 
     <div class="map-wrap" id="mapWrap">

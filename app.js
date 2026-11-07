@@ -241,6 +241,8 @@
       seen: t.seen || '',
       fsqClosed: t.fsq_closed || '',
       phoneOwner: t.phone_owner || '',
+      vkLast: t.vk_last || '',
+      vkMembers: +t.vk_members || 0,
       lat, lon,
     };
   }
@@ -345,6 +347,7 @@
       renderChips();
       render();
       if (mapReady) map.fitBounds([[b.w, b.s], [b.e, b.n]], { padding: 10, duration: 0 });
+      document.dispatchEvent(new CustomEvent('otves:loaded', { detail: { city: CITY.id } }));
     } catch (e) {
       clearInterval(timer);
       setStatus('Серверы OpenStreetMap не ответили. Нажмите «Искать» ещё раз через минуту.');
@@ -421,7 +424,7 @@
 
   function drawMap(list) {
     if (!mapReady) return;
-    const features = list.map((b) => {
+    const features = list.filter((b) => b.lat != null).map((b) => {
       const st = statusOf(b.id);
       const color = b._target ? COLORS[DOT[st]] : COLORS.off;
       return { type: 'Feature', geometry: { type: 'Point', coordinates: [b.lon, b.lat] }, properties: { id: b.id, color, target: b._target } };
@@ -490,8 +493,12 @@
         || a.name.localeCompare(b.name, 'ru'));
   }
 
-  const yandexUrl = (b) => `https://yandex.ru/maps/?ll=${b.lon.toFixed(6)},${b.lat.toFixed(6)}&z=18&text=${encodeURIComponent(b.name)}`;
-  const gisUrl = (b) => `https://2gis.ru/search/${encodeURIComponent(b.name)}?m=${b.lon.toFixed(6)}%2C${b.lat.toFixed(6)}%2F18`;
+  const yandexUrl = (b) => (b.lat == null
+    ? `https://yandex.ru/maps/?text=${encodeURIComponent(b.name + ' ' + (b.cityName || CITY.name))}`
+    : `https://yandex.ru/maps/?ll=${b.lon.toFixed(6)},${b.lat.toFixed(6)}&z=18&text=${encodeURIComponent(b.name)}`);
+  const gisUrl = (b) => (b.lat == null
+    ? `https://2gis.ru/${b.cityId || CITY.id}/search/${encodeURIComponent(b.name)}`
+    : `https://2gis.ru/search/${encodeURIComponent(b.name)}?m=${b.lon.toFixed(6)}%2C${b.lat.toFixed(6)}%2F18`);
   // Поиск по номеру в 2ГИС: самая надёжная проверка, чей телефон сейчас.
   const gisPhoneUrl = (b) => {
     const d = String(b.phones[0] || '').replace(/\D/g, '');
@@ -526,7 +533,13 @@
   // в двух базах ~62% верных, только OSM ~54%, новые из Foursquare ~50%,
   // «Foursquare видел в 2023–2025» ~37%, только Facebook ~37%, закрытые по Foursquare — 4 из 4 закрыты.
   // 0 — в двух базах, 1 — OSM или Foursquare, 2 — только Facebook, 3 — номер у другого, 5 — закрыт.
+  // Сообщество ВК с постами за последние полгода — бизнес точно жив, его ведёт владелец.
+  const daysSince = (date) => (Date.now() - Date.parse(date)) / 86400000;
+  const vkFresh = (b) => Boolean(b.vkLast) && daysSince(b.vkLast) <= 183;
+
   function reliability(b) {
+    if (vkFresh(b)) return -1;
+    if (b.src === 'vk' && b.vkLast) return 4; // в сообществе давно нет постов — бизнес, скорее всего, закрыт
     if (b.fsqClosed) return 5;
     if (b.phoneOwner) return 3;
     if (b.agree) return 0;
@@ -537,10 +550,18 @@
   // Пометки в карточке: откуда запись и можно ли ей верить.
   function dataAge(b) {
     const notes = [];
-    if (b.fsqClosed) notes.push(['old', `По данным Foursquare закрыт (${b.fsqClosed})`]);
+    if (b.vkLast) {
+      const d = Math.round(daysSince(b.vkLast));
+      const ago = d <= 0 ? 'сегодня' : d < 31 ? `${d} дн. назад` : d < 365 ? `${Math.round(d / 30)} мес. назад` : `${Math.round(d / 365)} г. назад`;
+      const members = b.vkMembers ? `, подписчиков ${b.vkMembers.toLocaleString('ru-RU')}` : '';
+      notes.push([vkFresh(b) ? 'ok' : 'old', `ВК: последний пост ${ago}${members}`]);
+    } else if (b.src === 'vk') {
+      notes.push(['old', 'ВК: постов нет']);
+    }
+    if (b.fsqClosed && !vkFresh(b)) notes.push(['old', `По данным Foursquare закрыт (${b.fsqClosed})`]);
     if (b.phoneOwner) notes.push(['old', `Номер в Foursquare у другого бизнеса: «${b.phoneOwner}»`]);
     if (b.agree) notes.push(['ok', 'Есть в двух базах']);
-    if (b.src === 'overture' && /meta/i.test(b.ds || '')) notes.push(['old', 'Из Facebook: телефон часто устаревший, проверьте номер в 2ГИС']);
+    if (b.src === 'overture' && /meta/i.test(b.ds || '') && !vkFresh(b)) notes.push(['old', 'Из Facebook: телефон часто устаревший, проверьте номер в 2ГИС']);
     if (b.src === 'foursquare') notes.push(['', `Из Foursquare, проверено ${b.seen}`]);
     else if (b.seen >= '2023') notes.push(['', `Foursquare видел в ${b.seen.slice(0, 4)}`]);
     return notes.map(([cls, text]) => `<p class="biz-age${cls ? ' ' + cls : ''}">${esc(text)}</p>`).join('');
@@ -784,6 +805,7 @@
 
     const b = findBiz(id);
     if (from === 'map' && row && !isNarrow()) row.scrollIntoView({ block: 'nearest' });
+    if (b && b.lat == null) return; // у сообщества ВК без адреса нет точки на карте
     if (from === 'list' && b && mapReady) {
       if (isNarrow()) $('#mapWrap').scrollIntoView({ block: 'start' });
       map.easeTo({ center: [b.lon, b.lat], zoom: Math.max(map.getZoom(), 16), duration: reduceMotion ? 0 : 600 });
@@ -1032,6 +1054,86 @@
       if (state.view === 'leads') renderLeads(); else if (state.loaded) render();
     });
   }
+
+  // ---------- Внешние источники (ВКонтакте, vk.js) ----------
+
+  const normName = (s) => String(s || '').toLowerCase().replace(/ё/g, 'е').replace(/[^0-9a-zа-я]/g, '');
+  const phone10 = (p) => { const d = String(p || '').replace(/\D/g, ''); return d.length >= 10 ? d.slice(-10) : ''; };
+  function distM(a, b) {
+    const dy = (a.lat - b.lat) * 111320;
+    const dx = (a.lon - b.lon) * 111320 * Math.cos(a.lat * Math.PI / 180);
+    return Math.hypot(dx, dy);
+  }
+
+  // Значимые слова названия: без «клуб», «студия», «танцев», названия города и т. п.
+  // «Дыхание души | клуб танцев | Волгоград» и «Клуб танцев "Дыхание души"» → [дыхание, души].
+  const GENERIC = new Set(('клуб студия студии школа школы салон салона красоты центр кафе ресторан бар магазин '
+    + 'танцев танца танцы танец танцевальный танцевальная танцевальная студия фитнес спорт спортивный '
+    + 'для детей взрослых официальная группа страница сообщество the and dance studio club school bar cafe').split(' '));
+  function brandWords(name) {
+    const stem = CITY.name.toLowerCase().slice(0, 6);
+    return String(name || '').toLowerCase().replace(/ё/g, 'е').split(/[^0-9a-zа-я]+/)
+      .filter((w) => w.length >= 3 && !GENERIC.has(w) && !w.startsWith(stem));
+  }
+
+  // Тот же бизнес среди уже найденных: тот же id, тот же телефон или те же значимые слова в названии.
+  function findTwin(v, index) {
+    const exact = state.all.find((b) => b.id === v.id);
+    if (exact) return exact;
+    const vp = new Set(v.phones.map(phone10).filter(Boolean));
+    const vw = brandWords(v.name);
+    let best = null;
+    for (const [b, bw] of index) {
+      if (vp.size && b.phones.some((p) => vp.has(phone10(p)))) return b;
+      if (!vw.length || !bw.length || b.catId !== v.catId) continue; // по названию — только один вид бизнеса
+      const common = vw.filter((w) => bw.includes(w)).length;
+      const need = Math.min(2, vw.length, bw.length);
+      if (common < need) continue;
+      const near = v.lat == null || b.lat == null || distM(v, b) < 3000;
+      // Два и больше совпавших слова — тот же бизнес, даже если переехал. Одно слово — только рядом.
+      if (common >= 2 || near) best = best || b;
+    }
+    return best;
+  }
+
+  // Дополняем известный бизнес данными ВК: телефон из сообщества — первым, ссылка на ВК, свежесть.
+  function mergeExternal(t, v) {
+    if (t.id === v.id) { Object.assign(t, v); return; }
+    t.vkLast = v.vkLast || t.vkLast;
+    t.vkMembers = v.vkMembers || t.vkMembers;
+    if (v.phones.length) {
+      // Телефон из ВК — первым; одинаковые номера в разной записи («+7 919…» и «8919…») не дублируем.
+      const seen = new Set();
+      t.phones = [...v.phones, ...t.phones].filter((p) => { const k = phone10(p) || p; if (seen.has(k)) return false; seen.add(k); return true; });
+    }
+    v.socials.forEach((s) => { if (!t.socials.some((x) => x.url === s.url)) t.socials.unshift(s); });
+    if (v.site.kind === 'own' && t.site.kind !== 'own') t.site = v.site;
+    // Сообщество живое и с адресом — значит, адрес в ВК свежее: бизнес мог переехать.
+    if (v.lat != null && (t.lat == null || vkFresh(v))) { t.lat = v.lat; t.lon = v.lon; if (v.addr) t.addr = v.addr; }
+    if (!t.addr && v.addr) t.addr = v.addr;
+    if (v.hours && (!t.hours || vkFresh(v))) t.hours = v.hours;
+  }
+
+  function addExternal(elements) {
+    let added = 0, merged = 0;
+    const index = state.all.map((b) => [b, brandWords(b.name)]);
+    for (const el of elements) {
+      const v = applyCatFix(toBiz(el));
+      if (!v.name) continue;
+      const twin = findTwin(v, index);
+      if (twin) { mergeExternal(twin, v); merged++; } else { state.all.push(v); index.push([v, brandWords(v.name)]); added++; }
+    }
+    if (state.loaded) { renderChips(); render(); }
+    return { added, merged };
+  }
+
+  // Для vk.js: текущий город, выбранные виды, загружен ли город, добавление найденного.
+  window.OTVES = {
+    city: () => CITY,
+    cats: () => CATS.filter((c) => state.cats.has(c.id)),
+    loaded: () => state.loaded,
+    addExternal,
+  };
 
   // ---------- Старт ----------
 
