@@ -624,7 +624,7 @@
     else {
       const b = findBiz(id);
       if (!b || !numPhones(b).length) return;
-      nums[id] = { id, name: b.name, cat: b.cat, addr: b.addr, cityName: b.cityName || CITY.name, phones: b.phones, added: Date.now() };
+      nums[id] = { id, name: b.name, cat: b.cat, addr: b.addr, cityName: b.cityName || CITY.name, cityId: b.cityId || CITY.id, phones: b.phones, rel: reliability(b), added: Date.now() };
     }
     saveNums();
     renderNumCount();
@@ -664,8 +664,12 @@
         <div>
           <p class="num-name">${esc(x.name)}</p>
           <p class="num-phones">${esc(numPhones(x).join(', '))}${badPhone(x.id) ? ' — номер неверный, в файл не попадёт' : ''}</p>
+          ${x.rel >= 2 ? '<p class="biz-age old">Номер из Facebook или у другого бизнеса — проверьте</p>' : ''}
         </div>
-        <button class="act" type="button" data-act="numdel">Убрать</button>
+        <div class="num-acts">
+          <a class="act act-check" href="${esc(gisPhoneUrl(x))}" target="_blank" rel="noopener" title="Чей это номер сейчас">Номер в 2ГИС</a>
+          <button class="act" type="button" data-act="numdel">Убрать</button>
+        </div>
       </li>`).join('');
     renderNumCount();
   }
