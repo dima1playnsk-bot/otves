@@ -233,6 +233,7 @@
       site,
       chain: Boolean(t.brand || t['brand:wikidata']),
       cityName: CITY.name,
+      cityId: CITY.id,
       src: t.src || 'osm',
       ds: t.ds || '',
       agree: Boolean(t.agree),
@@ -339,7 +340,7 @@
       state.loaded = true;
       state.shown = PAGE_SIZE;
       const d = new Date(data.updated);
-      setStatus(CITY.name + '. Данные OpenStreetMap и Overture от ' + d.toLocaleDateString('ru-RU') + '.');
+      setStatus(CITY.name + '. Данные OSM, Overture и Foursquare от ' + d.toLocaleDateString('ru-RU') + '.');
       renderChips();
       render();
       if (mapReady) map.fitBounds([[b.w, b.s], [b.e, b.n]], { padding: 10, duration: 0 });
@@ -468,7 +469,7 @@
       const closed = st === 'closed' || (b.fsqClosed && st === 'new');
       if (f.status === 'closed') return closed;
       if (closed) return false;
-      if (f.reliable && reliability(b) >= 3) return false;
+      if (f.reliable && reliability(b) >= 2) return false;
       if (!f.sites && !b._target) return false;
       if (f.chains && b.chain) return false;
       if (f.phone && !b.phones.length) return false;
@@ -490,6 +491,12 @@
 
   const yandexUrl = (b) => `https://yandex.ru/maps/?ll=${b.lon.toFixed(6)},${b.lat.toFixed(6)}&z=18&text=${encodeURIComponent(b.name)}`;
   const gisUrl = (b) => `https://2gis.ru/search/${encodeURIComponent(b.name)}?m=${b.lon.toFixed(6)}%2C${b.lat.toFixed(6)}%2F18`;
+  // Поиск по номеру в 2ГИС: самая надёжная проверка, чей телефон сейчас.
+  const gisPhoneUrl = (b) => {
+    const d = String(b.phones[0] || '').replace(/\D/g, '');
+    const num = d.length >= 11 ? '7' + d.slice(1, 11) : d.length === 10 ? '7' + d : d;
+    return `https://2gis.ru/${CITIES[b.cityId] ? b.cityId : CITY.id}/search/${num}`;
+  };
   const webSearchUrl = (b) => `https://www.google.com/search?q=${encodeURIComponent(`${b.name} ${b.cityName || CITY.name} сайт`)}`;
   const telHref = (p) => 'tel:' + p.replace(/[^\d+]/g, '');
 
@@ -514,17 +521,16 @@
       + `<option value="other"${cur === 'other' ? ' selected' : ''}>Другое</option>`;
   }
 
-  // Насколько можно верить записи. Сверка с 2ГИС (Волгоград, ноябрь 2026):
-  // верный телефон у OSM ~2/3, у Foursquare (проверено с 2024) ~1/2, у Overture из Facebook ~1/3.
-  // 0 — подтверждено свежей проверкой, 1 — есть в двух базах, 2 — OSM или Foursquare,
-  // 3 — только Facebook, 4 — номер, похоже, у другого бизнеса, 5 — закрыт.
+  // Насколько можно верить телефону. Сверка с 2ГИС (Волгоград, ноябрь 2026, по 8–13 номеров):
+  // в двух базах ~62% верных, только OSM ~54%, новые из Foursquare ~50%,
+  // «Foursquare видел в 2023–2025» ~37%, только Facebook ~37%, закрытые по Foursquare — 4 из 4 закрыты.
+  // 0 — в двух базах, 1 — OSM или Foursquare, 2 — только Facebook, 3 — номер у другого, 5 — закрыт.
   function reliability(b) {
     if (b.fsqClosed) return 5;
-    if (b.phoneOwner) return 4;
-    if (b.seen >= '2023') return 0;
-    if (b.agree) return 1;
-    if (b.src === 'overture' && /meta/i.test(b.ds || '')) return 3;
-    return 2;
+    if (b.phoneOwner) return 3;
+    if (b.agree) return 0;
+    if (b.src === 'overture' && /meta/i.test(b.ds || '')) return 2;
+    return 1;
   }
 
   // Пометки в карточке: откуда запись и можно ли ей верить.
@@ -532,10 +538,10 @@
     const notes = [];
     if (b.fsqClosed) notes.push(['old', `По данным Foursquare закрыт (${b.fsqClosed})`]);
     if (b.phoneOwner) notes.push(['old', `Номер в Foursquare у другого бизнеса: «${b.phoneOwner}»`]);
-    if (b.seen >= '2023') notes.push(['ok', `Подтверждено Foursquare: ${b.seen}`]);
-    else if (b.agree) notes.push(['ok', 'Есть в двух базах']);
-    if (b.src === 'overture' && /meta/i.test(b.ds || '') && !b.seen) notes.push(['old', 'Из Facebook: адрес и телефон могли устареть, сверьте в 2ГИС']);
-    else if (b.src === 'foursquare' && !b.seen) notes.push(['', 'Из Foursquare']);
+    if (b.agree) notes.push(['ok', 'Есть в двух базах']);
+    if (b.src === 'overture' && /meta/i.test(b.ds || '')) notes.push(['old', 'Из Facebook: телефон часто устаревший, проверьте номер в 2ГИС']);
+    if (b.src === 'foursquare') notes.push(['', `Из Foursquare, проверено ${b.seen}`]);
+    else if (b.seen >= '2023') notes.push(['', `Foursquare видел в ${b.seen.slice(0, 4)}`]);
     return notes.map(([cls, text]) => `<p class="biz-age${cls ? ' ' + cls : ''}">${esc(text)}</p>`).join('');
   }
 
@@ -580,6 +586,7 @@
         ${socialIcons(b)}
         <a class="act" href="${esc(yandexUrl(b))}" target="_blank" rel="noopener">Яндекс Карты</a>
         <a class="act" href="${esc(gisUrl(b))}" target="_blank" rel="noopener">2ГИС</a>
+        ${b.phones.length ? `<a class="act act-check" href="${esc(gisPhoneUrl(b))}" target="_blank" rel="noopener" title="Открыть 2ГИС с поиском по этому номеру: видно, чей он сейчас">Номер в 2ГИС</a>` : ''}
         <a class="act" href="${esc(webSearchUrl(b))}" target="_blank" rel="noopener">Найти сайт</a>
         ${/^(node|way|relation)\//.test(b.osm) ? `<a class="act" href="https://www.openstreetmap.org/${esc(b.osm)}" target="_blank" rel="noopener">OSM</a>` : ''}
       </div>

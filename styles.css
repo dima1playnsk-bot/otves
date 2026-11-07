@@ -408,3 +408,5 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .biz-age.old { color: #D9A441; }
 
 .biz-age.ok { color: var(--ok); }
+
+.act-check { border-color: var(--accent); color: var(--accent); }
