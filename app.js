@@ -65,12 +65,13 @@
     { id: 'declined', label: 'Отказ' },
     { id: 'hassite', label: 'Сайт есть' },
     { id: 'closed', label: 'Не работает' },
+    { id: 'badphone', label: 'Номер неверный' },
   ];
   const WORK = ['checked', 'contacted', 'interested'];
-  const SUMMARY_LABELS = { new: 'новые', checked: 'проверено', contacted: 'связался', interested: 'интересно', declined: 'отказ', hassite: 'сайт есть', closed: 'не работает' };
+  const SUMMARY_LABELS = { new: 'новые', checked: 'проверено', contacted: 'связался', interested: 'интересно', declined: 'отказ', hassite: 'сайт есть', closed: 'не работает', badphone: 'номер неверный' };
 
   const COLORS = { new: '#F2C14E', work: '#6EA8FE', hot: '#4CC38A', off: '#5A606A' };
-  const DOT = { new: 'new', checked: 'work', contacted: 'work', interested: 'hot', declined: 'off', hassite: 'off', closed: 'off' };
+  const DOT = { new: 'new', checked: 'work', contacted: 'work', interested: 'hot', declined: 'off', hassite: 'off', closed: 'off', badphone: 'off' };
 
   // Ссылка в поле «сайт» на соцсеть или сервис записи — своего сайта нет.
   const PAGE_HOSTS = [
@@ -642,9 +643,12 @@
     el.classList.toggle('has', n > 0);
   }
 
+  // Номера со статусом «Номер неверный» в файл не попадают.
+  const badPhone = (id) => statusOf(id) === 'badphone';
+
   function allNumbers() {
     const out = [];
-    Object.values(nums).sort((a, b) => a.added - b.added)
+    Object.values(nums).filter((x) => !badPhone(x.id)).sort((a, b) => a.added - b.added)
       .forEach((x) => numPhones(x).forEach((p) => { if (!out.includes(p)) out.push(p); }));
     return out;
   }
@@ -659,7 +663,7 @@
     $('#numList').innerHTML = arr.map((x) => `<li class="num-row" data-id="${esc(x.id)}">
         <div>
           <p class="num-name">${esc(x.name)}</p>
-          <p class="num-phones">${esc(numPhones(x).join(', '))}</p>
+          <p class="num-phones">${esc(numPhones(x).join(', '))}${badPhone(x.id) ? ' — номер неверный, в файл не попадёт' : ''}</p>
         </div>
         <button class="act" type="button" data-act="numdel">Убрать</button>
       </li>`).join('');
