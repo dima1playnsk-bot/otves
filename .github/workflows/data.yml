@@ -9,6 +9,10 @@ on:
         description: 'Не качать OpenStreetMap (взять прошлые данные)'
         type: boolean
         default: false
+      skip_sites:
+        description: 'Не проверять живость сайтов (быстрее)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -31,6 +35,11 @@ jobs:
           python-version: '3.12'
       - run: pip install overturemaps duckdb
       - run: python scripts/merge-overture.py
+      # Мёртвый или запаркованный сайт = бизнес без сайта, то есть лид.
+      - name: Проверить, живы ли сайты
+        if: ${{ !inputs.skip_sites }}
+        run: node scripts/check-sites.mjs
+        continue-on-error: true
       - name: Сохранить в репозиторий
         env:
           GH_TOKEN: ${{ github.token }}
