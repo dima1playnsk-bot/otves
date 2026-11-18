@@ -364,7 +364,7 @@
   let mapReady = false;
 
   function initMap() {
-    if (!window.maplibregl) { $('#map').innerHTML = '<p class="empty">Карта не загрузилась. Обновите страницу.</p>'; return; }
+    if (!window.maplibregl) { $('#map').innerHTML = '<p class="empty">Карта не загрузилась: библиотека карты не скачалась. Список бизнесов работает и без неё — нажмите «Искать». Если не помогает, проверьте соединение и обновите страницу.</p>'; return; }
     map = new maplibregl.Map({
       container: 'map',
       style: 'https://tiles.openfreemap.org/styles/dark',
