@@ -190,8 +190,25 @@ async function mapLimit(items, limit, fn) {
   return out;
 }
 
+// Отдельный файл с накопленными знаниями о сайтах. Нужен потому, что
+// scripts/merge-overture.py каждый раз пересобирает data/<город>.json из
+// data/<город>.osm.json и Overture с нуля: все site_status и dead_website
+// в нём пропадают. Без этого файла мёртвые сайты ищутся заново при каждом
+// прогоне, а прогон длится больше часа.
+const STATE_FILE = `${DATA}/sites-state.json`;
+let sitesState = {};
+try {
+  sitesState = JSON.parse(await readFile(STATE_FILE, 'utf8'));
+  if (!sitesState || typeof sitesState !== 'object') sitesState = {};
+} catch {
+  sitesState = {};
+}
+const stateKey = (el) => `${el.type}:${el.id}`;
+// Ключи, которые встретились в этом прогоне: остальные из файла вычищаем, чтобы он не пух.
+const seenKeys = new Set();
+
 const files = (await readdir(DATA))
-  .filter((f) => f.endsWith('.json') && !f.endsWith('.osm.json'))
+  .filter((f) => f.endsWith('.json') && !f.endsWith('.osm.json') && f !== 'sites-state.json')
   .filter((f) => !ONLY || f === `${ONLY}.json`)
   .sort();
 
@@ -208,6 +225,23 @@ for (const file of files) {
   const city = file.replace(/\.json$/, '');
   const base = JSON.parse(await readFile(path, 'utf8'));
   const elements = Array.isArray(base.elements) ? base.elements : [];
+
+  // Возвращаем на место то, что знали о сайтах раньше: merge пересобрал файл начисто.
+  let restoredKnown = 0;
+  for (const el of elements) {
+    const known = sitesState[stateKey(el)];
+    if (!known || !known.s) continue;
+    const tags = el.tags || (el.tags = {});
+    if (known.s === 'dead' || known.s === 'parked') {
+      const url = tags.website || tags['contact:website'] || tags.url || tags['contact:url'] || known.u || '';
+      if (url) tags.dead_website = url;
+      for (const k of WEBSITE_KEYS) delete tags[k];
+    }
+    tags.site_status = known.s;
+    if (known.c) tags.site_checked = known.c;
+    restoredKnown++;
+  }
+  if (restoredKnown) console.log(`[${city}] вернул из накопленного: ${restoredKnown}`);
 
   // Какие домены можно не проверять: все записи с этим доменом уже отвечали "ok",
   // и проверка свежая (< --max-age дней). Мёртвые и запаркованные проверяются всегда.
@@ -306,17 +340,42 @@ for (const file of files) {
     }
   }
 
+  // Копим знания о сайтах: этот файл переживает пересборку <город>.json.
+  let stateChanged = 0;
+  for (const el of elements) {
+    const s = el.tags && el.tags.site_status;
+    if (!s) continue;
+    const key = stateKey(el);
+    seenKeys.add(key);
+    const next = { s, c: el.tags.site_checked || today };
+    if (el.tags.dead_website) next.u = el.tags.dead_website;
+    const prev = sitesState[key];
+    if (!prev || prev.s !== next.s || prev.c !== next.c || prev.u !== next.u) {
+      sitesState[key] = next;
+      stateChanged++;
+    }
+  }
+
   console.log(
     `[${city}] живых ${stats.ok}, мёртвых ${stats.dead}, парковок ${stats.parked}, ` +
     `не проверить ${stats.blocked}, соцсетей ${stats.social} → новых лидов ${saved}` +
     (restored ? `, восстановлено сайтов ${restored}` : '')
   );
 
-  if (!DRY && (saved > 0 || restored > 0)) {
+  if (!DRY && (saved > 0 || restored > 0 || restoredKnown > 0 || stateChanged > 0)) {
     base.sites_checked = new Date().toISOString().slice(0, 10);
     base.elements = elements;
     await writeFile(path, JSON.stringify(base), 'utf8');
   }
+}
+
+if (!DRY) {
+  // При прогоне по одному городу (--city) чужие записи не трогаем.
+  if (!ONLY) {
+    for (const key of Object.keys(sitesState)) if (!seenKeys.has(key)) delete sitesState[key];
+  }
+  await writeFile(STATE_FILE, JSON.stringify(sitesState), 'utf8');
+  console.log(`Накоплено в ${STATE_FILE}: ${Object.keys(sitesState).length} записей`);
 }
 
 console.log(`Готово. Всего доменов проверено: ${totalProbed || '—'}${DRY ? ' (dry-run, файлы не изменены)' : ''}`);
