@@ -26,6 +26,10 @@ const ONLY = argv.get('city') || null;
 const LIMIT = Number(argv.get('limit') || 0);
 const CONC = Math.max(1, Number(argv.get('concurrency') || 8));
 const TIMEOUT = Number(argv.get('timeout') || 9000);
+// Свежие живые сайты не перепроверяем: без этого каждый прогон занимает час,
+// потому что 7 тысяч доменов дёргаются заново. Мёртвые и запаркованные
+// проверяются всегда — они могут ожить. --max-age=0 отключает пропуск.
+const MAX_AGE = Number(argv.get('max-age') ?? 14);
 const DATA = 'data';
 
 // Ссылки на соцсети и конструкторы сайтов не проверяем: это не "свой сайт",
@@ -205,27 +209,45 @@ for (const file of files) {
   const base = JSON.parse(await readFile(path, 'utf8'));
   const elements = Array.isArray(base.elements) ? base.elements : [];
 
+  // Какие домены можно не проверять: все записи с этим доменом уже отвечали "ok",
+  // и проверка свежая (< --max-age дней). Мёртвые и запаркованные проверяются всегда.
+  const cutoffMonth = MAX_AGE > 0 ? new Date(Date.now() - MAX_AGE * 864e5).toISOString().slice(0, 7) : null;
+  const fresh = new Map(); // host -> true, если все его записи живые и проверены недавно
+  for (const el of elements) {
+    const t = el.tags || {};
+    const w = pickWebsite(t);
+    if (!w) continue;
+    const host = hostOf(normalizeUrl(w.url));
+    if (!host) continue;
+    const ok = cutoffMonth ? (t.site_status === 'ok' && t.site_checked >= cutoffMonth) : false;
+    fresh.set(host, (fresh.get(host) ?? true) && ok);
+  }
+  const staleHosts = new Set([...fresh].filter(([, ok]) => !ok).map(([h]) => h));
+
   // Собираем уникальные сайты: у сетей один домен на десятки точек.
   // Заодно перепроверяем те, что мы в прошлые разы признали мёртвыми: домен мог ожить.
   const tasks = new Map();
-  const addTask = (raw) => {
+  const addTask = (raw, force) => {
     const host = hostOf(normalizeUrl(raw));
     if (!host || SOCIAL_RE.test(host)) return;
+    if (!force && !staleHosts.has(host)) return;
     if (!tasks.has(host)) tasks.set(host, normalizeUrl(raw));
   };
   for (const el of elements) {
     const tags = el.tags || {};
     const w = pickWebsite(tags);
-    if (w) addTask(w.url);
-    else if (tags.dead_website) addTask(tags.dead_website);
+    if (w) addTask(w.url, false);
+    else if (tags.dead_website) addTask(tags.dead_website, true); // оживший домен проверяем всегда
   }
+  const skippedFresh = fresh.size - staleHosts.size;
 
   let pairs = [...tasks.entries()];
   if (LIMIT) pairs = pairs.slice(0, LIMIT);
   if (!pairs.length) {
-    console.log(`[${city}] сайтов для проверки нет`);
+    console.log(`[${city}] проверять нечего: все ${fresh.size} доменов живы и проверены недавно`);
     continue;
   }
+  if (skippedFresh > 0) console.log(`[${city}] пропускаю свежих доменов: ${skippedFresh}`);
 
   console.log(`[${city}] проверяю доменов: ${pairs.length}`);
   totalProbed += pairs.length;
